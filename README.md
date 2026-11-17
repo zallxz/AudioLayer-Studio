@@ -9,8 +9,8 @@ and Noise** on a timeline (with confidence scores and overlaps), separates them 
 models, lets you remove or isolate whole categories or single segments, and exports synchronised stems,
 a cleaned mix, the video with replaced audio, and metadata for your editor.
 
-> 🇮🇩 **Tutorial lengkap Bahasa Indonesia (install, aplikasi web, Claude Desktop, Claude Code):
-> [docs/TUTORIAL.md](docs/TUTORIAL.md)**
+> 📘 **Step-by-step tutorial (install, web app, Claude Desktop, Claude Code):**
+> [🇬🇧 English](docs/TUTORIAL.en.md) · [🇮🇩 Bahasa Indonesia](docs/TUTORIAL.md)
 >
 > **Works with Claude:** add `audiolayer-mcp` to Claude Desktop or Claude Code and ask Claude in plain
 > language to analyze, clean and export your clips — see [Using it from Claude](#using-it-from-claude-mcp).
@@ -20,7 +20,7 @@ a cleaned mix, the video with replaced audio, and metadata for your editor.
 
 ## Contents
 [Features](#features) · [Screenshots](#screenshots) · [Architecture](#architecture) ·
-[Tutorial (ID)](docs/TUTORIAL.md) · [Installation](#installation) · [Running](#running) · [Claude / MCP](#using-it-from-claude-mcp) ·
+[Tutorial EN](docs/TUTORIAL.en.md) / [ID](docs/TUTORIAL.md) · [Installation](#installation) · [Running](#running) · [Claude / MCP](#using-it-from-claude-mcp) ·
 [Exports](#export-formats) · [Limitations](#limitations) · [Troubleshooting](#troubleshooting) ·
 [Development](#development) · [License](#license)
 

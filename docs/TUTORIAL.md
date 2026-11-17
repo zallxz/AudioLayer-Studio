@@ -1,11 +1,9 @@
-# Tutorial AudioLayer Studio (Bahasa Indonesia)
+# Tutorial AudioLayer Studio
+
+**🇮🇩 Bahasa Indonesia** · [🇬🇧 English](TUTORIAL.en.md)
 
 Panduan langkah demi langkah dari nol sampai bisa membersihkan audio video AI — lewat aplikasi web
 di komputer sendiri **dan** lewat Claude.
-
-> English summary: install Python + FFmpeg, `pip install -e ".[ml]"`, build the UI, run
-> `audiolayer-api`, and add `audiolayer-mcp` to Claude Desktop. Full English docs: [README](../README.md),
-> [MCP guide](MCP.md).
 
 ---
 
@@ -285,7 +283,7 @@ Isi (sesuaikan path-nya):
     "audiolayer": {
       "command": "/Users/nama/AudioLayer-Studio/.venv/bin/audiolayer-mcp",
       "env": {
-        "AUDIOLAYER_WORKSPACE": "/Users/nama/AudioLayer-Studio/workspace",
+        "AUDIOLAYER_WORKSPACE": "/Users/nama/AudioLayer/workspace",
         "AUDIOLAYER_INPUT_DIRS": "/Users/nama/Documents/Video AI",
         "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
       }
@@ -302,7 +300,7 @@ Isi (sesuaikan path-nya):
     "audiolayer": {
       "command": "C:\\Users\\nama\\AudioLayer-Studio\\.venv\\Scripts\\audiolayer-mcp.exe",
       "env": {
-        "AUDIOLAYER_WORKSPACE": "C:\\Users\\nama\\AudioLayer-Studio\\workspace",
+        "AUDIOLAYER_WORKSPACE": "C:\\Users\\nama\\AudioLayer\\workspace",
         "AUDIOLAYER_INPUT_DIRS": "C:\\Users\\nama\\Documents\\Video AI"
       }
     }
@@ -356,12 +354,18 @@ sama) — jadi bisa minta Claude menganalisis, lalu kamu cek dan dengarkan di ti
 
 ## 7. Pakai lewat Claude Code (terminal)
 
-Dengan venv aktif, dari folder repo:
+Cara termudah (venv aktif):
 
 ```bash
-claude mcp add audiolayer \
-  --env AUDIOLAYER_INPUT_DIRS="$HOME/Documents/Video AI" \
-  --env AUDIOLAYER_WORKSPACE="$PWD/workspace" \
+audiolayer setup-claude --input-dir "$HOME/Documents/Video AI" --code
+```
+
+Atau manual:
+
+```bash
+claude mcp add audiolayer --scope user \
+  -e AUDIOLAYER_INPUT_DIRS="$HOME/Documents/Video AI" \
+  -e AUDIOLAYER_WORKSPACE="$HOME/AudioLayer/workspace" \
   -- "$(which audiolayer-mcp)"
 ```
 
@@ -443,7 +447,7 @@ skill akan memandu cara install-nya dulu.
 | Claude bilang `Path is outside the allowed input folders` | Pindahkan video ke folder di `AUDIOLAYER_INPUT_DIRS`, atau tambahkan foldernya |
 | "No source-separation model available" | PyTorch / `.[ml]` belum terinstall (langkah 3b–3c) |
 | Download model gagal | Cek internet, jalankan `python scripts/download_models.py` lagi |
-| Halaman web kosong / 404 | Langkah 3d (build UI) belum dijalankan |
+| Halaman web kosong / 404 | Jalankan `audiolayer doctor`; kalau baris *web UI* gagal, install ulang (`pip install -e ".[ml]"`) |
 | Tidak ada suara di browser | Klik ▶ sekali (browser memblokir audio sebelum ada klik); pastikan status *analyzed* |
 | Proses lama / laptop panas | Normal di CPU. Matikan *Transcribe dialogue*, atau set `AUDIOLAYER_WHISPER_MODEL=tiny` |
 | Kehabisan memori untuk video panjang | Set `AUDIOLAYER_CHUNK_SECONDS=15` |

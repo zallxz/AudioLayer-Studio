@@ -97,4 +97,4 @@ low-accuracy heuristic classifier; say so plainly instead of presenting those re
 3. Web app: `audiolayer web` or double-click `AudioLayer.command` / `AudioLayer.bat`.
 4. Claude on the web (claude.ai) cannot reach a program on the user's laptop; use Claude Desktop or
    deploy the server remotely (docs/MCP.md).
-Full Indonesian tutorial: docs/TUTORIAL.md in the repo.
+Full tutorial in the repo: docs/TUTORIAL.en.md (English) and docs/TUTORIAL.md (Bahasa Indonesia).
