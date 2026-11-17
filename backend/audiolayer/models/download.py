@@ -8,6 +8,13 @@ from ..config import Settings
 from .registry import MODELS, ensure_weights
 
 DEFAULT = ("panns", "demucs", "faster-whisper")
+CLOUD = ("panns-onnx", "demucs-onnx", "faster-whisper")
+
+
+def default_keys(settings: Settings) -> tuple[str, ...]:
+    from ..core.components import pick_engine
+
+    return CLOUD if pick_engine(settings) == "onnx" else DEFAULT
 
 
 def download(settings: Settings, keys: tuple[str, ...] | list[str] = DEFAULT,
@@ -17,7 +24,7 @@ def download(settings: Settings, keys: tuple[str, ...] | list[str] = DEFAULT,
             raise ValueError(f"unknown model {key!r}; choose from {list(MODELS)}")
         spec = MODELS[key]
         log(f"→ {spec.name} [{spec.license}] (~{spec.size_mb} MB)")
-        if key == "panns":
+        if key in ("panns", "panns-onnx", "demucs-onnx", "whisper-base-mirror"):
             log(f"   {ensure_weights(spec, settings.model_dir, allow_download=True)}")
         elif key == "demucs":
             from demucs.pretrained import get_model
@@ -25,10 +32,9 @@ def download(settings: Settings, keys: tuple[str, ...] | list[str] = DEFAULT,
             get_model(settings.demucs_model)
             log("   cached in the torch hub directory")
         elif key == "faster-whisper":
-            from faster_whisper import WhisperModel
+            from ..classification.speech import WhisperAsr
 
-            WhisperModel(settings.whisper_model, device="cpu", compute_type="int8",
-                         download_root=str(settings.model_dir / "whisper"))
-            log(f"   whisper-{settings.whisper_model} cached in {settings.model_dir / 'whisper'}")
+            WhisperAsr(settings)._model()  # Hugging Face first, GitHub mirror as fallback
+            log(f"   whisper-{settings.whisper_model} ready")
         elif key == "noisereduce":
             log("   no weights needed")

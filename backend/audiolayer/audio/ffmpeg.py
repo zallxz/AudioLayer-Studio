@@ -17,16 +17,19 @@ WORKING_SR = 48000
 
 def ffmpeg_bin() -> str:
     b = shutil.which("ffmpeg")
-    if not b:
-        raise ProcessingFailed("FFmpeg not found on PATH", hint="Install FFmpeg (see README).")
-    return b
+    if b:
+        return b
+    try:  # static build shipped by the `imageio-ffmpeg` wheel (cloud extra) — no system install needed
+        import imageio_ffmpeg
+
+        return str(imageio_ffmpeg.get_ffmpeg_exe())
+    except Exception as e:  # noqa: BLE001
+        raise ProcessingFailed("FFmpeg not found on PATH", hint="Install FFmpeg (see README) "
+                               "or `pip install imageio-ffmpeg`.") from e
 
 
-def ffprobe_bin() -> str:
-    b = shutil.which("ffprobe")
-    if not b:
-        raise ProcessingFailed("ffprobe not found on PATH", hint="Install FFmpeg (see README).")
-    return b
+def ffprobe_bin() -> str | None:
+    return shutil.which("ffprobe")
 
 
 def run(cmd: list[str], *, timeout: float | None = None) -> subprocess.CompletedProcess[str]:
@@ -41,9 +44,48 @@ def _f(v: Any) -> float | None:
         return None
 
 
+def _probe_av(path: Path) -> dict[str, Any]:
+    """ffprobe-compatible metadata via PyAV (used when ffprobe is not installed)."""
+    try:
+        import av
+    except ImportError as e:
+        raise ProcessingFailed("ffprobe not found and PyAV not installed",
+                               hint="Install FFmpeg, or `pip install av`.") from e
+    try:
+        c = av.open(str(path))
+    except Exception as e:  # noqa: BLE001
+        raise InvalidMedia(f"Could not read media file: {e}",
+                           hint="The file may be corrupted or not a supported audio/video format.") from e
+    with c:
+        streams: list[dict[str, Any]] = []
+        for s in c.streams:
+            tb = float(s.time_base) if s.time_base else 0.0
+            d: dict[str, Any] = {"codec_type": s.type, "codec_name": s.codec_context.name if s.codec_context else None,
+                                 "duration": (s.duration * tb) if s.duration and tb else None,
+                                 "start_time": (s.start_time * tb) if s.start_time is not None and tb else None,
+                                 "disposition": {"attached_pic": int(bool(getattr(s, "disposition", 0) & 0x400))}
+                                 if isinstance(getattr(s, "disposition", 0), int) else {}}
+            cc: Any = s.codec_context
+            if s.type == "audio":
+                layout = getattr(cc, "layout", None)
+                ch = getattr(layout, "nb_channels", None) or getattr(cc, "channels", None)
+                d.update(sample_rate=cc.sample_rate, channels=ch)
+            elif s.type == "video":
+                rate = getattr(s, "average_rate", None)
+                d.update(width=cc.width, height=cc.height,
+                         avg_frame_rate=f"{rate.numerator}/{rate.denominator}" if rate else "0/0")
+            streams.append(d)
+        fmt = {"format_name": c.format.name, "size": path.stat().st_size,
+               "duration": c.duration / 1_000_000 if c.duration else None}
+    return {"format": fmt, "streams": streams}
+
+
 def probe(path: Path) -> MediaInfo:
+    fp = ffprobe_bin()
+    if fp is None:
+        return _media_from(_probe_av(path), path)
     res = run(
-        [ffprobe_bin(), "-v", "error", "-print_format", "json", "-show_format", "-show_streams", str(path)],
+        [fp, "-v", "error", "-print_format", "json", "-show_format", "-show_streams", str(path)],
         timeout=120,
     )
     if res.returncode != 0:
@@ -51,7 +93,10 @@ def probe(path: Path) -> MediaInfo:
             f"Could not read media file: {res.stderr.strip()[:300] or 'unknown error'}",
             hint="The file may be corrupted or not a supported audio/video format.",
         )
-    data = json.loads(res.stdout or "{}")
+    return _media_from(json.loads(res.stdout or "{}"), path)
+
+
+def _media_from(data: dict[str, Any], path: Path) -> MediaInfo:
     fmt = data.get("format", {})
     streams = data.get("streams", [])
     v = next((s for s in streams if s.get("codec_type") == "video" and not s.get("disposition", {}).get("attached_pic")), None)

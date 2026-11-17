@@ -61,15 +61,30 @@ class WhisperAsr:
     def _model(self) -> Any:
         from faster_whisper import WhisperModel
 
-        key = f"{self.settings.whisper_model}:{self.device}"
+        from ..models.registry import MODELS, ensure_weights, weights_path
+
+        s = self.settings
+        key = f"{s.whisper_model}:{self.device}"
         with _LOCK:
-            if key not in _CACHE:
-                _CACHE[key] = WhisperModel(
-                    self.settings.whisper_model, device=self.device, compute_type=self.compute_type,
-                    download_root=str(self.settings.model_dir / "whisper"),
-                    local_files_only=not self.settings.allow_model_download,
-                )
-            return _CACHE[key]
+            if key in _CACHE:
+                return _CACHE[key]
+            mirror = MODELS["whisper-base-mirror"]
+            mirror_dir = weights_path(mirror, s.model_dir).parent
+            kw = {"device": self.device, "compute_type": self.compute_type}
+            if s.whisper_model == "base" and mirror_dir.joinpath("model.bin").exists():
+                model = WhisperModel(str(mirror_dir), **kw)
+            else:
+                try:
+                    model = WhisperModel(s.whisper_model, download_root=str(s.model_dir / "whisper"),
+                                         local_files_only=not s.allow_model_download, **kw)
+                except Exception:
+                    if s.whisper_model != "base" or not s.allow_model_download:
+                        raise
+                    # Hugging Face unreachable (e.g. a sandbox that only allows GitHub/PyPI): use the mirror.
+                    ensure_weights(mirror, s.model_dir, allow_download=True)
+                    model = WhisperModel(str(mirror_dir), **kw)
+            _CACHE[key] = model
+            return model
 
     def transcribe(self, path: Path, language: str | None = None, on_progress: ProgressFn | None = None,
                    check_cancel: CancelFn | None = None) -> AsrResult:

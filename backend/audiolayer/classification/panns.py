@@ -46,13 +46,18 @@ class PannsClassifier:
                 _MODEL_CACHE[key] = model
             return _MODEL_CACHE[key]
 
-    def frame_probs(self, path: Path, on_progress: ProgressFn | None = None,
-                    check_cancel: CancelFn | None = None) -> FrameProbs:
+    def _run(self, y: np.ndarray) -> np.ndarray:
+        """(samples,) at 32 kHz -> (frames, 527) probabilities."""
         import torch
 
-        from ..models.panns_cnn14 import FRAME_HOP_S, HOP, POOL_RATIO, SAMPLE_RATE
-
         model = self._model()
+        with torch.no_grad():
+            return np.asarray(model(torch.from_numpy(y[None, :]).to(self.device))[0].cpu().numpy())
+
+    def frame_probs(self, path: Path, on_progress: ProgressFn | None = None,
+                    check_cancel: CancelFn | None = None) -> FrameProbs:
+        HOP, POOL_RATIO, SAMPLE_RATE = 320, 32, 32000
+        FRAME_HOP_S = HOP * POOL_RATIO / SAMPLE_RATE
         sr, _, n = aio.info(path)
         unit = HOP * POOL_RATIO  # samples per output frame at 32 kHz
         frames_per_chunk = max(1, int(self.settings.chunk_seconds / FRAME_HOP_S))
@@ -69,9 +74,8 @@ class PannsClassifier:
             mono = aio.to_mono(x)
             y = aio.resample(mono, sr, SAMPLE_RATE)
             want = int(np.ceil(len(y) / unit)) * unit
-            y = np.pad(y, (0, want - len(y)))
-            with torch.no_grad():
-                p = model(torch.from_numpy(y[None, :]).to(self.device))[0].cpu().numpy()
+            y = np.pad(y, (0, want - len(y))).astype(np.float32)
+            p = self._run(y)
             outs.append(p[: want // unit])
             pos += chunk_in
             if on_progress:
@@ -83,3 +87,26 @@ class PannsClassifier:
             idx = np.argsort(row)[-4:][::-1]
             top.append([(labels[i], round(float(row[i]), 3)) for i in idx if row[i] > 0.05])
         return FrameProbs(hop=FRAME_HOP_S, probs=tracks, top_labels=top)
+
+
+class PannsOnnxClassifier(PannsClassifier):
+    """Same model through ONNX Runtime — no PyTorch needed (torch-free "cloud" engine)."""
+
+    name = "panns-cnn14-sed-onnx"
+
+    def __init__(self, settings: Settings):
+        self.settings = settings
+        self.device = "cpu"
+
+    def _session(self) -> Any:
+        import onnxruntime as ort
+
+        with _MODEL_LOCK:
+            if "panns-onnx" not in _MODEL_CACHE:
+                w = ensure_weights(MODELS["panns-onnx"], self.settings.model_dir,
+                                   allow_download=self.settings.allow_model_download)
+                _MODEL_CACHE["panns-onnx"] = ort.InferenceSession(str(w), providers=["CPUExecutionProvider"])
+            return _MODEL_CACHE["panns-onnx"]
+
+    def _run(self, y: np.ndarray) -> np.ndarray:
+        return np.asarray(self._session().run(None, {"waveform": y[None, :].astype(np.float32)})[0][0])

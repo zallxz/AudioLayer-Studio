@@ -44,6 +44,7 @@ class Settings:
     device: str = "auto"
     max_upload_mb: int = 2048
     max_duration_s: float = 1800.0
+    engine: str = "auto"  # auto | torch | onnx  (onnx = torch-free "cloud" engine)
     classifier: str = "auto"  # panns | heuristic | auto
     separator: str = "auto"  # demucs | none | auto
     demucs_model: str = "htdemucs"
@@ -92,6 +93,7 @@ def load_settings() -> Settings:
         device=os.environ.get("AUDIOLAYER_DEVICE", "auto"),
         max_upload_mb=int(os.environ.get("AUDIOLAYER_MAX_UPLOAD_MB", "2048")),
         max_duration_s=float(os.environ.get("AUDIOLAYER_MAX_DURATION_S", "1800")),
+        engine=os.environ.get("AUDIOLAYER_ENGINE", "auto"),
         classifier=os.environ.get("AUDIOLAYER_CLASSIFIER", "auto"),
         separator=os.environ.get("AUDIOLAYER_SEPARATOR", "auto"),
         demucs_model=os.environ.get("AUDIOLAYER_DEMUCS_MODEL", "htdemucs"),

@@ -80,18 +80,34 @@ def cmd_doctor(_: argparse.Namespace) -> int:
     py_ok = sys.version_info >= (3, 11)
     line(py_ok, "Python >= 3.11", sys.executable)
     ok &= py_ok
-    for b in ("ffmpeg", "ffprobe"):
-        p = shutil.which(b)
-        line(bool(p), b, p or "not found — see docs/TUTORIAL.md step 2")
-        ok &= bool(p)
-    torch_ok = importlib.util.find_spec("torch") is not None
-    dev = "-"
-    if torch_ok:
+    from .audio.ffmpeg import ffmpeg_bin
+
+    try:
+        ffp: str | None = ffmpeg_bin()
+    except Exception:  # noqa: BLE001
+        ffp = None
+    line(bool(ffp), "ffmpeg", ffp or "not found — install FFmpeg (docs/TUTORIAL.en.md step 2) or `pip install imageio-ffmpeg`")
+    ok &= bool(ffp)
+    probe = shutil.which("ffprobe")
+    av_ok = importlib.util.find_spec("av") is not None
+    line(bool(probe) or av_ok, "ffprobe", probe or ("using PyAV instead" if av_ok else "not found"))
+    ok &= bool(probe) or av_ok
+    from .core.components import pick_engine
+
+    engine = pick_engine(s)
+    detail = {"torch": "PyTorch (full)", "onnx": "ONNX Runtime (torch-free cloud engine)",
+              "none": "none → detection-only heuristic (pip install -e '.[ml]' or '.[cloud]')"}[engine]
+    if engine == "torch":
         from .config import resolve_device
 
-        dev = resolve_device(s.device)
-    line(torch_ok, "PyTorch", f"device: {dev}" if torch_ok else "missing → detection-only mode (pip install -e '.[ml]')")
+        detail += f", device: {resolve_device(s.device)}"
+    line(engine != "none", "AI engine", detail)
+    ok &= engine != "none"
+    relevant = {"torch": {"panns", "demucs", "faster-whisper", "noisereduce"},
+                "onnx": {"panns-onnx", "demucs-onnx", "faster-whisper", "noisereduce"}}.get(engine, {"noisereduce"})
     for m in status(s.model_dir):
+        if m["key"] not in relevant:
+            continue
         w = m["weights_installed"]
         if not m["python_deps_installed"]:
             state = "deps missing"
@@ -130,14 +146,14 @@ def _ui_dist() -> Path | None:
 
 # ---------------------------------------------------------------------------- models
 def cmd_models(a: argparse.Namespace) -> int:
-    from .models.download import DEFAULT, download
+    from .models.download import default_keys, download
     from .models.registry import status
 
     s = get_settings()
     if a.action == "list":
         print(json.dumps(status(s.model_dir), indent=2))
         return 0
-    download(s, a.keys or list(DEFAULT))
+    download(s, a.keys or list(default_keys(s)))
     print("Done.")
     return 0
 

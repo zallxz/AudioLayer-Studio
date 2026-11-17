@@ -52,30 +52,46 @@ def weights(fp_voice: FrameProbs | None, fp_acc: FrameProbs) -> dict[str, np.nda
     }
 
 
-def tf_foreground(x: np.ndarray, sr: int) -> np.ndarray | None:
-    """Non-repeating (foreground) part of ``x`` via nearest-neighbour median filtering.
+def nn_median_background(S: np.ndarray, width: int) -> np.ndarray:
+    """Nearest-neighbour median filter (REPET-SIM; same idea as librosa.decompose.nn_filter).
 
-    Returns ``None`` when librosa (part of the ``ml`` extra) is not installed.
+    For each frame, the background is the median of the k most similar (cosine) frames that are at
+    least ``width`` frames away; repeating musical material survives, one-off effects do not.
     """
-    try:
-        import librosa
-    except ImportError:
-        return None
+    T = S.shape[1]
+    norm = S / (np.linalg.norm(S, axis=0, keepdims=True) + 1e-10)
+    sim = norm.T @ norm
+    idx = np.arange(T)
+    sim[np.abs(idx[:, None] - idx[None, :]) < width] = -np.inf
+    k = int(2 * np.ceil(np.sqrt(max(1, T - 2 * width + 1))))
+    k = max(1, min(k, T - 1))
+    nbrs = np.argpartition(-sim, k - 1, axis=1)[:, :k]
+    out = np.empty_like(S)
+    for i in range(T):
+        valid = nbrs[i][np.isfinite(sim[i, nbrs[i]])]
+        out[:, i] = np.median(S[:, valid], axis=1) if len(valid) else S[:, i]
+    return out
+
+
+def tf_foreground(x: np.ndarray, sr: int) -> np.ndarray | None:
+    """Non-repeating (foreground) part of ``x`` (frames, channels) via a REPET-SIM soft mask."""
+    from scipy.signal import istft, stft
 
     n_fft, hop = 2048, 512
-    mono = x.mean(axis=1)
-    S = np.abs(librosa.stft(mono, n_fft=n_fft, hop_length=hop))
+    kw = {"fs": sr, "window": "hann", "nperseg": n_fft, "noverlap": n_fft - hop}
+    _, _, Z = stft(x.T, **kw)  # (C, F, T)
+    S = np.abs(Z).mean(axis=0)
     width = max(3, int(round(1.5 * sr / hop)))
-    if S.shape[1] <= width * 2:
+    if S.shape[1] <= width * 2 + 2:
         return np.zeros_like(x)
-    bg = librosa.decompose.nn_filter(S, aggregate=np.median, metric="cosine", width=width)
-    bg = np.minimum(S, bg)
-    mask_fg = librosa.util.softmask(S - bg, 2.0 * bg, power=2)
-    out = np.zeros_like(x)
-    for c in range(x.shape[1]):
-        Z = librosa.stft(x[:, c], n_fft=n_fft, hop_length=hop)
-        out[:, c] = librosa.istft(Z * mask_fg, hop_length=hop, length=len(x))
-    return out.astype(np.float32)
+    bg = np.minimum(S, nn_median_background(S, width))
+    fg = S - bg
+    mask = fg**2 / (fg**2 + (2.0 * bg) ** 2 + 1e-12)
+    _, y = istft(Z * mask[None], **kw)
+    y = np.asarray(y).T[: len(x)]
+    if len(y) < len(x):
+        y = np.pad(y, ((0, len(x) - len(y)), (0, 0)))
+    return y.astype(np.float32)
 
 
 def interp(track: np.ndarray, hop: float, start: int, n: int, sr: int) -> np.ndarray:

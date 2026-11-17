@@ -20,33 +20,55 @@ class Components:
     separator: Any | None
     asr: Any | None
     notes: list[str] = field(default_factory=list)
+    engine: str = "custom"
+
+
+def pick_engine(settings: Settings) -> str:
+    torch_ok = deps_available(MODELS["demucs"]) and deps_available(MODELS["panns"])
+    onnx_ok = _has("onnxruntime")
+    if settings.engine == "torch" or (settings.engine == "auto" and torch_ok):
+        return "torch" if torch_ok else "none"
+    if settings.engine in ("onnx", "auto") and onnx_ok:
+        return "onnx"
+    return "none"
 
 
 def build_components(settings: Settings) -> Components:
     notes: list[str] = []
+    engine = pick_engine(settings)
+    if settings.engine == "torch" and engine == "none":
+        notes.append("AUDIOLAYER_ENGINE=torch but PyTorch/Demucs are not installed.")
     # classifier
     clf: Any
-    want = settings.classifier
-    if want in ("panns", "auto") and deps_available(MODELS["panns"]):
+    if settings.classifier == "heuristic" or engine == "none":
+        if settings.classifier != "heuristic":
+            notes.append("No ML engine installed (install the `ml` or `cloud` extra): using the DSP heuristic "
+                         "classifier (low accuracy).")
+        from ..classification.heuristic import HeuristicClassifier
+
+        clf = HeuristicClassifier()
+    elif engine == "torch":
         from ..classification.panns import PannsClassifier
 
         clf = PannsClassifier(settings)
     else:
-        if want == "panns":
-            notes.append("PANNs requested but torch/torchlibrosa are not installed; using heuristic classifier.")
-        elif want == "auto":
-            notes.append("ML extras not installed: using the DSP heuristic classifier (low accuracy).")
-        from ..classification.heuristic import HeuristicClassifier
+        from ..classification.panns import PannsOnnxClassifier
 
-        clf = HeuristicClassifier()
+        clf = PannsOnnxClassifier(settings)
     # separator
     sep: Any | None = None
-    if settings.separator in ("demucs", "auto") and deps_available(MODELS["demucs"]):
+    if settings.separator == "none":
+        pass
+    elif engine == "torch":
         from ..separation.demucs_sep import DemucsSeparator
 
         sep = DemucsSeparator(settings)
-    elif settings.separator != "none":
-        notes.append("No source-separation model available (install the `ml` extra for Demucs). "
+    elif engine == "onnx":
+        from ..separation.demucs_onnx import DemucsOnnxSeparator
+
+        sep = DemucsOnnxSeparator(settings)
+    else:
+        notes.append("No source-separation model available (install the `ml` or `cloud` extra). "
                      "Detection works; isolation/removal of categories is disabled.")
     # asr
     asr: Any | None = None
@@ -56,12 +78,13 @@ def build_components(settings: Settings) -> Components:
         asr = WhisperAsr(settings)
     elif settings.asr != "none":
         notes.append("faster-whisper not installed: no transcripts / SRT / gibberish detection.")
-    return Components(classifier=clf, separator=sep, asr=asr, notes=notes)
+    return Components(classifier=clf, separator=sep, asr=asr, notes=notes, engine=engine)
 
 
 def system_info(settings: Settings, comps: Components) -> dict[str, Any]:
     return {
-        "device": resolve_device(settings.device),
+        "device": resolve_device(settings.device) if comps.engine == "torch" else "cpu",
+        "engine": comps.engine,
         "classifier": getattr(comps.classifier, "name", None),
         "classifier_calibrated": getattr(comps.classifier, "calibrated", False),
         "separator": getattr(comps.separator, "name", None),
