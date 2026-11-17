@@ -110,10 +110,8 @@ def create_app(settings: Settings | None = None, service: AudioLayerService | No
     app.state.settings = settings
     app.state.service = svc
     if settings.cors_origins:
-        # allow_private_network answers Chrome's Private Network Access preflight, so a hosted UI
-        # (e.g. on Vercel) can talk to a backend on localhost / the LAN that lists its origin.
         app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["*"],
-                           allow_headers=["*"], allow_credentials=False, allow_private_network=True)
+                           allow_headers=["*"], allow_credentials=False)
 
     @app.exception_handler(AudioLayerError)
     async def _err(_: Request, e: AudioLayerError) -> JSONResponse:

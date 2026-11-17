@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORY_META, fmtTime } from "./categories";
-import { api, ApiError, fileUrl, getApiBase, getToken, mediaUrl, pollJob, setApiBase, setToken } from "./services/api";
+import { api, ApiError, fileUrl, getToken, mediaUrl, pollJob, setToken } from "./services/api";
 import { AudioEngine } from "./services/audioEngine";
 import type { Category, Job, Peaks, Project, ProjectSummary, Segment, SystemInfo } from "./services/types";
 import { CATEGORIES } from "./services/types";
@@ -27,8 +27,6 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [needToken, setNeedToken] = useState(false);
-  const [offline, setOffline] = useState(false);
-  const [backendInput, setBackendInput] = useState(getApiBase() || "http://127.0.0.1:8000");
   const [, force] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -36,7 +34,6 @@ export default function App() {
 
   const report = (e: unknown) => {
     if (e instanceof ApiError && e.status === 401) { setNeedToken(true); return; }
-    if (e instanceof ApiError && e.code === "unreachable") { setOffline(true); return; }
     setError(e instanceof ApiError ? `${e.message}${e.hint ? ` — ${e.hint}` : ""}` : String((e as Error)?.message ?? e));
   };
 
@@ -213,7 +210,6 @@ export default function App() {
         <button className="btn ghost" disabled={!project?.can_undo} onClick={() => undoRedo(false)} title="Undo">↶</button>
         <button className="btn ghost" disabled={!project?.can_redo} onClick={() => undoRedo(true)} title="Redo">↷</button>
         <button className="btn accent" disabled={!project || project.status !== "analyzed"} onClick={() => setShowExport(true)}>Export</button>
-        <button className="btn ghost sm" title={`Backend: ${getApiBase() || "same origin"}`} onClick={() => setOffline((v) => !v)}>Backend</button>
       </header>
 
       {error && <div className="toast" role="alert"><span>{error}</span><button className="btn ghost sm" onClick={() => setError(null)}>×</button></div>}
@@ -223,22 +219,7 @@ export default function App() {
         </div>
       )}
 
-      {offline && (
-        <div className="connect">
-          <h2>Connect to your AudioLayer backend</h2>
-          <p className="muted">This web UI is only the interface. Audio analysis, separation and export run in the
-            AudioLayer backend (Python + FFmpeg + PyTorch) on your computer or your own server — it cannot run on
-            static hosting. Start it with <code>audiolayer-api</code> and enter its URL.</p>
-          <p className="muted small">Local backend: allow this site with <code>AUDIOLAYER_CORS_ORIGINS={location.origin}</code>.
-            Your browser may ask permission to access devices on your local network.</p>
-          <div className="row gap">
-            <input value={backendInput} onChange={(e) => setBackendInput(e.target.value)} placeholder="http://127.0.0.1:8000" style={{ flex: 1 }} />
-            <button className="btn primary" onClick={() => { setApiBase(backendInput); location.reload(); }}>Connect</button>
-          </div>
-          <p className="muted small">Setup guide: <a href="https://github.com/zallxz/AudioLayer-Studio#installation" target="_blank" rel="noreferrer">github.com/zallxz/AudioLayer-Studio</a></p>
-        </div>
-      )}
-      {offline ? null : !project ? (
+      {!project ? (
         <main className="empty" onClick={() => fileInput.current?.click()}>
           <div className="drop">
             <h1>Clean up the audio of your AI-generated video</h1>

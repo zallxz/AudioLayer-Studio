@@ -122,20 +122,6 @@ npm ci
 npm run build        # outputs frontend/dist, served by the backend at http://127.0.0.1:8000
 ```
 
-### Hosted UI on Vercel (optional)
-
-The web UI is a static Vite app and can be hosted on Vercel (`frontend/vercel.json`, project root
-directory `frontend`). **The backend cannot run on Vercel** — it needs FFmpeg, PyTorch, minutes-long jobs
-and a persistent workspace — so the hosted UI connects to a backend you run yourself:
-
-- On your computer: `AUDIOLAYER_CORS_ORIGINS=https://<your-app>.vercel.app audiolayer-api`, then click
-  **Backend** in the UI and enter `http://127.0.0.1:8000` (Chrome may ask to allow local-network access).
-- On a server (GPU VM, Railway, Fly.io, Render…): deploy the Docker image behind HTTPS, set
-  `AUDIOLAYER_CORS_ORIGINS` to the Vercel URL, and either enter the backend URL in the UI or set
-  `VITE_API_BASE` in the Vercel project's environment variables.
-
-Your media goes straight from the browser to *your* backend; Vercel only serves the interface files.
-
 ### Docker
 
 ```bash
