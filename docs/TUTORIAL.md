@@ -9,6 +9,34 @@ di komputer sendiri **dan** lewat Claude.
 
 ---
 
+## ⚡ Cara tercepat (3 langkah)
+
+1. **Install bahan dasar**: Python 3.11+, Git dan FFmpeg ([langkah 2](#2-install-bahan-dasar)).
+   Installer di bawah bisa memasang Python/FFmpeg otomatis lewat Homebrew (Mac), apt (Ubuntu) atau winget (Windows).
+2. **Download & jalankan installer**:
+   ```bash
+   git clone https://github.com/zallxz/AudioLayer-Studio.git
+   cd AudioLayer-Studio
+   ./install.sh                                          # macOS / Linux
+   ```
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File install.ps1  # Windows
+   ```
+   Installer otomatis: membuat virtual environment, memasang PyTorch + AudioLayer, mengunduh model AI
+   (± 550 MB), membuat tombol peluncur, dan **menyambungkan ke Claude Desktop** (+ Claude Code kalau ada).
+   Node.js tidak wajib — tampilan web sudah ikut terpasang.
+3. **Pakai**:
+   - **Aplikasi web** → klik dua kali `AudioLayer.command` (Mac/Linux) atau `AudioLayer.bat` (Windows).
+   - **Satu perintah** → `audiolayer clean video.mp4 --preset remove_music --loudness youtube --video`
+   - **Claude** → taruh video di folder `AudioLayer/inputs` (di folder home kamu), restart Claude Desktop,
+     lalu ketik misalnya *"bersihkan musik latar di scene1.mp4"*.
+
+Cek kapan saja apakah semuanya beres: `audiolayer doctor`.
+
+Langkah-langkah di bawah adalah versi manual/detail dari proses yang sama.
+
+---
+
 ## Daftar isi
 
 1. [Apa yang dibutuhkan](#1-apa-yang-dibutuhkan)
@@ -20,6 +48,7 @@ di komputer sendiri **dan** lewat Claude.
 7. [Pakai lewat Claude Code](#7-pakai-lewat-claude-code-terminal)
 8. [Bisa dipakai di Claude versi web (claude.ai)?](#8-bisa-dipakai-di-claudeai-versi-web)
 9. [Resep cepat untuk masalah umum video AI](#9-resep-cepat)
+   · [Perintah `audiolayer` (CLI)](#perintah-audiolayer-cli) · [Skill Claude](#skill-claude)
 10. [Kalau ada masalah](#10-kalau-ada-masalah)
 
 ---
@@ -124,7 +153,9 @@ pip install torch
 pip install -e ".[ml]"
 ```
 
-### 3d. Bangun tampilan web
+### 3d. Bangun tampilan web (opsional)
+
+Tampilan web siap pakai sudah ikut terpasang. Langkah ini hanya perlu kalau kamu mengubah kode UI:
 
 ```bash
 cd frontend
@@ -165,7 +196,8 @@ Hasilnya: `demo/demo_ai_video.mp4`.
 audiolayer-api
 ```
 
-Biarkan terminal itu terbuka, lalu buka browser ke **<http://127.0.0.1:8000>**.
+(atau `audiolayer web`, yang juga langsung membuka browser). Biarkan terminal itu terbuka, lalu buka
+browser ke **<http://127.0.0.1:8000>**.
 Untuk menghentikan: tekan `Ctrl + C` di terminal.
 
 ### Alur kerja
@@ -198,7 +230,7 @@ Semua file stem panjangnya sama dan mulai dari detik 0 — taruh semuanya di awa
 Premiere/DaVinci/CapCut/Audacity dan semuanya langsung sinkron. File `*_audacity_labels.txt` bisa
 di-import di Audacity (*File → Import → Labels*) untuk melihat penanda segmen.
 
-File hasil juga tersimpan di folder `workspace/projects/<id>/exports/`.
+File hasil juga tersimpan di folder `AudioLayer/workspace/projects/<id>/exports/` di folder home kamu.
 
 ---
 
@@ -207,7 +239,18 @@ File hasil juga tersimpan di folder `workspace/projects/<id>/exports/`.
 **Ya, AudioLayer bisa dipakai langsung dari Claude.** Claude Desktop menjalankan AudioLayer di
 komputermu lewat MCP, jadi kamu cukup menyuruh Claude dengan bahasa biasa.
 
-### Langkah 1 — Cari lokasi program `audiolayer-mcp`
+### Cara otomatis (disarankan)
+
+```bash
+audiolayer setup-claude --input-dir "~/Documents/Video AI"          # tambahkan --code untuk Claude Code juga
+```
+Perintah ini menulis konfigurasi Claude Desktop untukmu (file lama di-backup dulu), lalu tinggal
+restart Claude Desktop dan lompat ke [Langkah 5](#langkah-5--suruh-claude). `install.sh`/`install.ps1`
+sudah menjalankannya dengan folder `~/AudioLayer/inputs`.
+
+### Cara manual
+
+#### Langkah 1 — Cari lokasi program `audiolayer-mcp`
 
 Dengan venv aktif:
 
@@ -222,12 +265,12 @@ where.exe audiolayer-mcp
 # contoh hasil: C:\Users\nama\AudioLayer-Studio\.venv\Scripts\audiolayer-mcp.exe
 ```
 
-### Langkah 2 — Tentukan folder video
+#### Langkah 2 — Tentukan folder video
 
 Claude hanya boleh membaca video dari folder yang kamu izinkan (demi keamanan). Misalnya buat folder
 `Video AI` di Documents dan simpan klip-klipmu di sana.
 
-### Langkah 3 — Edit konfigurasi Claude Desktop
+#### Langkah 3 — Edit konfigurasi Claude Desktop
 
 Buka Claude Desktop → **Settings → Developer → Edit Config**. File yang terbuka:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -271,7 +314,7 @@ Kalau file config sudah berisi server MCP lain, tambahkan blok `"audiolayer": {.
 `"mcpServers"` yang sudah ada (pisahkan dengan koma). Lebih dari satu folder video:
 pisahkan dengan `:` (macOS/Linux) atau `;` (Windows).
 
-### Langkah 4 — Restart Claude Desktop
+#### Langkah 4 — Restart Claude Desktop
 
 Tutup Claude Desktop sepenuhnya (termasuk dari tray/menu bar), lalu buka lagi. Di kolom chat,
 menu tools/konektor sekarang menampilkan **audiolayer**.
@@ -356,13 +399,45 @@ musik dan efek suara yang **berbunyi bersamaan** belum bisa dipisah bersih (dita
 estimated"). Efek yang mirip pukulan drum kadang terdeteksi sebagai musik. Selalu dengarkan hasilnya
 dengan tombol **A/B original** sebelum export. Detail: [docs/MODELS.md](MODELS.md).
 
+### Perintah `audiolayer` (CLI)
+
+| Perintah | Fungsi |
+|---|---|
+| `audiolayer web` | Buka aplikasi web di browser |
+| `audiolayer analyze video.mp4` | Lihat isi audio (segmen, transkrip, masalah) |
+| `audiolayer clean video.mp4 --preset remove_music --video` | Hapus musik, simpan video bersih |
+| `audiolayer clean video.mp4 --remove sfx,noise --stems --zip` | Hapus SFX & noise, simpan semua stem + ZIP |
+| `audiolayer clean video.mp4 --mute-gibberish --loudness tiktok` | Bisukan dialog ngoceh, volume standar TikTok |
+| `audiolayer setup-claude --input-dir <folder>` | Sambungkan ke Claude Desktop (`--code` untuk Claude Code) |
+| `audiolayer models download` | Unduh model AI |
+| `audiolayer doctor` | Cek instalasi |
+
+Hasil `clean` tersimpan di folder `<nama-video>_audiolayer` di sebelah video aslinya.
+Preset: `remove_music`, `dialogue_only`, `music_and_effects`, `remove_noise`, `remove_sfx`, `remove_gibberish`.
+
+### Skill Claude
+
+Repo ini menyertakan skill Claude di [`skills/audiolayer/SKILL.md`](../skills/audiolayer/SKILL.md).
+Skill membuat Claude otomatis tahu kapan dan bagaimana memakai AudioLayer: menerjemahkan permintaan
+("hapus musiknya", "suaranya ngoceh", "buat dubbing") jadi preset yang tepat, menjalankan analisis,
+menunggu hasil, dan melaporkan keterbatasan dengan jujur.
+
+- **Claude (aplikasi/web)**: *Settings → Capabilities → Skills → Upload skill*, lalu pilih file ZIP
+  berisi folder `audiolayer/` (atau simpan dari kartu skill yang ditawarkan Claude).
+- **Claude Code**: salin folder ke `~/.claude/skills/audiolayer/` (semua project) atau
+  `.claude/skills/audiolayer/` (satu project).
+
+Skill paling berguna bersama MCP server (Claude Desktop) atau CLI (Claude Code). Tanpa keduanya,
+skill akan memandu cara install-nya dulu.
+
 ---
 
 ## 10. Kalau ada masalah
 
 | Gejala | Solusi |
 |---|---|
-| `audiolayer-api` / `audiolayer-mcp` *not found* | Venv belum aktif — jalankan lagi perintah `activate` (langkah 3a) |
+| Tidak yakin apa yang salah | Jalankan `audiolayer doctor` — semua bagian dicek satu per satu |
+| `audiolayer` / `audiolayer-api` / `audiolayer-mcp` *not found* | Venv belum aktif — jalankan lagi perintah `activate` (langkah 3a), atau pakai peluncur `AudioLayer.command`/`.bat` |
 | `FFmpeg not found on PATH` | Install FFmpeg (langkah 2), tutup-buka terminal. Untuk Claude Desktop di macOS tambahkan `PATH` di config (langkah 6) |
 | Claude Desktop tidak menampilkan audiolayer | Cek path `command` benar & absolut; JSON valid (koma, `\\` di Windows); restart penuh. Log: macOS `~/Library/Logs/Claude/mcp-server-audiolayer.log`, Windows `%APPDATA%\Claude\logs` |
 | Claude bilang `Path is outside the allowed input folders` | Pindahkan video ke folder di `AUDIOLAYER_INPUT_DIRS`, atau tambahkan foldernya |

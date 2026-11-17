@@ -19,6 +19,9 @@ stdio setup with Claude Desktop, or deploy the remote server behind TLS.
 
 ## Local setup (Claude Desktop)
 
+**Shortcut:** `audiolayer setup-claude --input-dir <folder>` does steps 1–2 for you (add `--code` for
+Claude Code). The manual route:
+
 1. Install AudioLayer (see README) and note the absolute path of the `audiolayer-mcp` executable
    (`which audiolayer-mcp` on macOS/Linux, `where audiolayer-mcp` on Windows).
 2. Edit Claude Desktop's config (`Settings → Developer → Edit Config`):

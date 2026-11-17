@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "build:bundle": "tsc --noEmit -p tsconfig.json && vite build --outDir ../backend/audiolayer/web_dist --emptyOutDir",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "preview": "vite preview"
   },

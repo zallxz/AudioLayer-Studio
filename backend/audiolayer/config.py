@@ -80,7 +80,8 @@ class Settings:
 
 
 def load_settings() -> Settings:
-    ws = Path(os.environ.get("AUDIOLAYER_WORKSPACE", "./workspace")).expanduser().resolve()
+    # One shared default so the web app, the CLI and Claude (MCP) all see the same projects.
+    ws = Path(os.environ.get("AUDIOLAYER_WORKSPACE", str(Path.home() / "AudioLayer" / "workspace"))).expanduser().resolve()
     md = Path(
         os.environ.get("AUDIOLAYER_MODEL_DIR", str(Path.home() / ".cache" / "audiolayer"))
     ).expanduser().resolve()

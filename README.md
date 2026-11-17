@@ -48,6 +48,8 @@ a cleaned mix, the video with replaced audio, and metadata for your editor.
 - **Export** – cleaned mix, five stems, original audio (WAV 48 kHz/24-bit, FLAC, MP3), video with the
   cleaned audio (video stream copied), loudness presets (−14/−16/−23 LUFS), edge fades, JSON + CSV + SRT +
   Audacity labels, ZIP package.
+- **Easy use** – one-step installers, a double-click launcher, `audiolayer clean clip.mp4 --preset remove_music`
+  one-liners, `audiolayer doctor`, `audiolayer setup-claude`, and a Claude skill.
 - **Claude integration** – MCP server with 13 tools (stdio for Claude Desktop/Code; Streamable HTTP with
   bearer auth for remote connectors), long-running jobs with polling and cancellation.
 - **Local-first** – all processing runs on your machine; no paid APIs; nothing is uploaded anywhere.
@@ -80,6 +82,27 @@ Why these, alternatives, hardware numbers and **measured** separation quality: [
 
 Requirements: **Python 3.11+**, **FFmpeg** (with `ffprobe`), **Node.js 20+** (only to build the UI),
 ~2 GB disk for Python packages + ~550 MB for model weights. A GPU is optional.
+
+### Quick install (recommended)
+
+```bash
+git clone https://github.com/zallxz/AudioLayer-Studio.git && cd AudioLayer-Studio
+./install.sh                                            # macOS / Linux
+# Windows: powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+The installer checks/installs Python 3.11+ and FFmpeg, creates `.venv`, installs PyTorch (CPU, CUDA or
+Apple Silicon) and AudioLayer, downloads the models, creates a double-click launcher
+(`AudioLayer.command` / `AudioLayer.bat`) and connects Claude Desktop (and Claude Code if installed).
+`--lite` skips PyTorch; `--yes` answers every question with yes. Then:
+
+```bash
+audiolayer web                                                         # app in your browser
+audiolayer clean clip.mp4 --preset remove_music --loudness youtube --video   # one command, no UI
+audiolayer doctor                                                      # check the installation
+```
+
+The manual steps below do the same thing by hand.
 
 ### 1. FFmpeg
 
@@ -120,7 +143,11 @@ python scripts/download_models.py --list     # status, sizes, licenses
 
 Then set `AUDIOLAYER_ALLOW_MODEL_DOWNLOAD=false` to forbid any further downloads.
 
-### 4. Frontend
+### 4. Frontend (optional)
+
+A prebuilt UI ships inside the Python package (`backend/audiolayer/web_dist`), so Node.js is only needed
+when you change the UI. `npm run build` writes `frontend/dist` (used in preference); `npm run build:bundle`
+refreshes the bundled copy.
 
 ```bash
 cd frontend
@@ -143,22 +170,25 @@ audiolayer-api                       # http://127.0.0.1:8000
 cd frontend && npm run dev           # http://127.0.0.1:5173
 ```
 
+By default the web app, the CLI and Claude share one workspace at `~/AudioLayer/workspace`.
 Environment variables are documented in [.env.example](.env.example) (workspace, model dir, device,
 model choices, upload/duration limits, input folders for MCP, auth tokens).
 
 Try it without your own media: `python scripts/make_demo_media.py ./demo` builds a 20 s test video with
 known ground-truth stems (speech + music + effects + hiss/hum); after analysing it,
-`python scripts/evaluate.py ./workspace <project_id> ./demo` prints the measured separation quality.
+`python scripts/evaluate.py ~/AudioLayer/workspace <project_id> ./demo` prints the measured separation quality.
 
 ## Using it from Claude (MCP)
 
 ### Local — Claude Desktop / Claude Code (stdio)
 
+One command writes the config for you (existing config is backed up and merged):
+
 ```bash
-which audiolayer-mcp                 # Windows: where audiolayer-mcp
+audiolayer setup-claude --input-dir ~/Movies/ai-clips          # add --code for Claude Code too
 ```
 
-Add to `claude_desktop_config.json` (macOS `~/Library/Application Support/Claude/`, Windows `%APPDATA%\Claude\`):
+Or by hand — find the executable with `which audiolayer-mcp` (Windows: `where audiolayer-mcp`) and add to `claude_desktop_config.json` (macOS `~/Library/Application Support/Claude/`, Windows `%APPDATA%\Claude\`):
 
 ```json
 {
@@ -209,6 +239,14 @@ Full guide, tool reference and example calls: [docs/MCP.md](docs/MCP.md).
 {"tool": "export_cleaned_audio",   "arguments": {"project_id": "prj_3f…", "loudness_preset": "youtube", "include_video": true}}
 {"tool": "export_audio_stems",     "arguments": {"project_id": "prj_3f…", "format": "wav"}}
 ```
+
+### Claude skill
+
+[`skills/audiolayer/SKILL.md`](skills/audiolayer/SKILL.md) teaches Claude when and how to use AudioLayer —
+mapping requests like "remove the music", "the characters speak gibberish" or "I want to dub it" to the
+right preset, running the MCP tools or the CLI, waiting for jobs and reporting limitations honestly.
+Install it in Claude via *Settings → Capabilities → Skills* (upload a ZIP of the `audiolayer` folder), or
+copy the folder to `~/.claude/skills/` for Claude Code.
 
 ## Export formats
 

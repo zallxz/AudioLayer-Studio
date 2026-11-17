@@ -283,8 +283,13 @@ def create_app(settings: Settings | None = None, service: AudioLayerService | No
         app.mount("/mcp", mcp_asgi)
 
     # ---- built frontend ---------------------------------------------------------------------
-    dist = Path(os.environ.get("AUDIOLAYER_FRONTEND_DIST", Path(__file__).resolve().parents[3] / "frontend" / "dist"))
-    if dist.is_dir() and (dist / "index.html").exists():
+    # Prebuilt UI ships inside the package (audiolayer/web_dist) so no Node.js is needed to run it;
+    # a local `frontend/dist` build or AUDIOLAYER_FRONTEND_DIST takes precedence.
+    candidates = [os.environ.get("AUDIOLAYER_FRONTEND_DIST", ""),
+                  str(Path(__file__).resolve().parents[3] / "frontend" / "dist"),
+                  str(Path(__file__).resolve().parents[1] / "web_dist")]
+    dist = next((Path(c) for c in candidates if c and (Path(c) / "index.html").exists()), None)
+    if dist is not None:
         app.mount("/", StaticFiles(directory=str(dist), html=True), name="frontend")
     return app
 
