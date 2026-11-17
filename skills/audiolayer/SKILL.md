@@ -128,19 +128,12 @@ Options: `--remove` (comma list of categories), `--preset`, `--mute-gibberish`,
 Output goes to `<input>_audiolayer/` next to the input by default. Use `--json` when you need to read
 results programmatically; run long jobs with a generous timeout (minutes for long clips).
 
-**Not installed?** Ask before installing on the user's own computer (≈2.5 GB with PyTorch + models).
-Easiest: `git clone https://github.com/zallxz/AudioLayer-Studio && cd AudioLayer-Studio && ./install.sh`
-(Windows: `powershell -ExecutionPolicy Bypass -File install.ps1`). In a throwaway sandbox:
-
-```bash
-pip install torch --index-url https://download.pytorch.org/whl/cpu   # if blocked: pip install torch
-pip install "audiolayer-studio[ml] @ git+https://github.com/zallxz/AudioLayer-Studio"
-audiolayer doctor
-```
-
-FFmpeg must be on PATH. Model weights download on first use from zenodo.org, huggingface.co and
-dl.fbaipublicfiles.com — if the network blocks them, AudioLayer falls back to detection-only with a
-low-accuracy heuristic classifier; say so plainly instead of presenting those results as reliable.
+**Not installed?** Ask before installing on the user's own computer. Easiest:
+`git clone https://github.com/zallxz/AudioLayer-Studio && cd AudioLayer-Studio && ./install.sh`
+(Windows: `powershell -ExecutionPolicy Bypass -File install.ps1`; ≈2.5 GB with PyTorch). For a lighter
+CPU-only install use the cloud engine: `pip install "audiolayer-studio[cloud] @ https://github.com/zallxz/AudioLayer-Studio/archive/refs/heads/main.zip"`.
+If `audiolayer doctor` reports the heuristic engine (no ML engine), results are low-accuracy — say so
+plainly instead of presenting them as reliable.
 
 ## 7. Report honestly
 
