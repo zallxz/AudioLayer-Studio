@@ -13,12 +13,38 @@ Categories: `dialogue`, `bgm` (music under the scene), `sfx` (effects + intentio
 ## 1. Pick the route
 
 1. **MCP tools available** (`analyze_media`, `get_processing_status`, … from the `audiolayer` server)
-   → use them (section 3).
+   → use them (section 4).
 2. **A shell is available** (Claude Code, or a sandbox with the user's uploaded file) → use the CLI
-   (section 4). Check first: `audiolayer --version`.
-3. **Neither** → tell the user how to set it up (section 6) and stop; don't pretend to process audio.
+   (section 5). Check first: `audiolayer --version`.
+3. **Neither** → tell the user how to set it up (section 7) and stop; don't pretend to process audio.
 
-## 2. Translate the request
+## 2. Default flow: detect → ask → apply
+
+When the user gives a file without saying exactly what to remove, don't ask anything first:
+
+1. **Detect right away** — run the analysis (MCP `analyze_media`, or `audiolayer analyze "<file>" --json`).
+   Tell the user in one line that it's running and roughly how long (≈1.5× the clip length on CPU).
+2. **Show what was found**, briefly, in the user's language: each category present with its time ranges
+   (e.g. "Musik latar 0:00–0:20", "Dialog 0:03–0:11: “With her white paint…”"), dialogue flagged as
+   gibberish, uncertain segments, and audio problems (hiss, hum, clipping, loudness).
+3. **Ask with multiple choice**, built only from what was actually detected (use the ask-user /
+   multiple-choice tool if the app has one; otherwise a short numbered list the user can answer with
+   numbers):
+   - *What should be removed?* (multi-select) — e.g. "Background music (0:00–0:20)",
+     "Gibberish dialogue (2 segments)", "All dialogue (keep music & effects)", "Sound effects: birds
+     0:13–0:15", "Noise/hiss", "Nothing — just give me the stems".
+   - *What do you want back?* — cleaned video · cleaned audio only · stems for my editor.
+   - *Platform loudness?* — YouTube/TikTok (−14 LUFS) · keep as is.
+   Mark the option you recommend (e.g. remove music + noise when the user complained about music).
+4. **Apply and export** with the answers (MCP `remove_audio_category` + `export_cleaned_audio` /
+   `export_audio_stems`, or one `audiolayer clean … --remove … --video --loudness …` command), then report
+   what changed, the output files, and the limitations.
+
+If the request already says what to do ("hapus musiknya, export buat TikTok"), skip step 3 and act,
+then still report what was found and removed. If the user corrects a label ("that's a song, not BGM"),
+relabel it before exporting.
+
+## 3. Translate the request
 
 | User says (EN / ID) | Do |
 |---|---|
@@ -35,7 +61,7 @@ Categories: `dialogue`, `bgm` (music under the scene), `sfx` (effects + intentio
 
 Several wishes combine: e.g. remove music **and** mute gibberish **and** normalize for YouTube.
 
-## 3. MCP workflow
+## 4. MCP workflow
 
 1. `analyze_media(file_path=...)` → returns `project_id`, `job_id`. If you get `[forbidden] … outside
    the allowed input folders`, ask the user to put the file in the folder named in the hint (or run
@@ -50,7 +76,7 @@ Several wishes combine: e.g. remove music **and** mute gibberish **and** normali
    `export_audio_stems(project_id)` / `separate_audio_category(project_id, category)`.
 7. Poll the export job; give the user the file paths from `files` / `zip`.
 
-## 4. CLI workflow
+## 5. CLI workflow
 
 ```bash
 audiolayer analyze "clip.mp4"                       # what's in the audio (add --json to parse)
@@ -79,7 +105,7 @@ FFmpeg must be on PATH. Model weights download on first use from zenodo.org, hug
 dl.fbaipublicfiles.com — if the network blocks them, AudioLayer falls back to detection-only with a
 low-accuracy heuristic classifier; say so plainly instead of presenting those results as reliable.
 
-## 5. Report honestly
+## 6. Report honestly
 
 - Lead with what was found (categories + time ranges, transcript snippets, problems) and what was removed.
 - Always pass on the `limitations` list. Known weak spots: music and SFX that sound **at the same time**
@@ -89,7 +115,7 @@ low-accuracy heuristic classifier; say so plainly instead of presenting those re
 - Suggest the user listens (web app A/B toggle: `audiolayer web`) before publishing.
 - Never say the separation is perfect or lossless; never invent outputs or timings.
 
-## 6. Setup help (when nothing is installed)
+## 7. Setup help (when nothing is installed)
 
 1. Install: clone the repo and run `./install.sh` (macOS/Linux) or `install.ps1` (Windows). It installs
    everything, downloads models, creates a launcher and connects Claude Desktop (and Claude Code if present).
