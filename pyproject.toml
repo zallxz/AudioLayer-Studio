@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "audiolayer-studio"
+version = "0.1.0"
+description = "Detect, classify, separate and remove audio layers (dialogue, BGM, SFX, music, noise) in AI-generated video — with a web UI and an MCP server for Claude."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "AudioLayer Studio contributors" }]
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "python-multipart>=0.0.9",
+  "pydantic>=2.7",
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "soundfile>=0.12",
+  "noisereduce>=3.0",
+  "mcp>=2.3,<3",
+]
+
+[project.optional-dependencies]
+# Neural models (PyTorch). Install the CPU or CUDA build of torch first if you need a specific one.
+ml = [
+  "torch>=2.3",
+  "demucs>=4.1",
+  "torchlibrosa>=0.1",
+  "librosa>=0.10",
+  "faster-whisper>=1.1",
+]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.6", "mypy>=1.11"]
+
+[project.scripts]
+audiolayer-api = "audiolayer.api.app:main"
+audiolayer-mcp = "audiolayer.mcp_server.server:main"
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+
+[tool.setuptools.package-data]
+audiolayer = ["models/data/*.csv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "models: tests that need the ML extras and downloaded model weights (slow)",
+]
+addopts = "-m 'not models'"
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+src = ["backend", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S"]
+ignore = ["S101", "S603", "S607", "B008", "S311"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "B"]
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+python_version = "3.12"
+packages = ["audiolayer"]
+mypy_path = "backend"
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = false
+
+[tool.ruff.lint.isort]
+known-first-party = ["audiolayer"]
+known-local-folder = ["conftest", "evaluate"]

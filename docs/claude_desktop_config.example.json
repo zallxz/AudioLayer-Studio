@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "audiolayer": {
+      "command": "/absolute/path/to/audiolayer-studio/.venv/bin/audiolayer-mcp",
+      "env": {
+        "AUDIOLAYER_WORKSPACE": "/absolute/path/to/AudioLayer/workspace",
+        "AUDIOLAYER_INPUT_DIRS": "/absolute/path/to/your/ai-video-clips",
+        "AUDIOLAYER_DEVICE": "auto",
+        "AUDIOLAYER_WHISPER_MODEL": "base"
+      }
+    }
+  }
+}

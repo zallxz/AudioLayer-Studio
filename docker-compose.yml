@@ -1,0 +1,23 @@
+services:
+  audiolayer:
+    build: .
+    image: audiolayer-studio:latest
+    ports:
+      - "127.0.0.1:8000:8000"   # bind to localhost; put a TLS reverse proxy in front for remote use
+    volumes:
+      - audiolayer-data:/data
+    environment:
+      AUDIOLAYER_DEVICE: cpu
+      AUDIOLAYER_WORKERS: "1"
+      # Remote MCP + multi-user auth (uncomment for a deployed server):
+      # AUDIOLAYER_ENABLE_REMOTE_MCP: "true"
+      # AUDIOLAYER_AUTH_TOKENS: "alice:change-me-long-random"
+      # AUDIOLAYER_PUBLIC_BASE_URL: "https://audiolayer.example.com"
+      # AUDIOLAYER_ALLOWED_HOSTS: "audiolayer.example.com"
+    # GPU (NVIDIA Container Toolkit): build with a CUDA torch wheel and uncomment:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices: [{ driver: nvidia, count: 1, capabilities: [gpu] }]
+volumes:
+  audiolayer-data:
