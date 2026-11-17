@@ -58,7 +58,7 @@ def build_server(service: AudioLayerService, *, remote: bool = False) -> MCPServ
     settings = service.settings
     mcp = MCPServer(
         name="audiolayer-studio", title="AudioLayer Studio", version="0.1.0", instructions=INSTRUCTIONS,
-        website_url="https://github.com/audiolayer-studio/audiolayer-studio",
+        website_url="https://github.com/zallxz/AudioLayer-Studio",
     )
 
     def owner() -> str:

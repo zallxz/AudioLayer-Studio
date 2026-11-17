@@ -89,7 +89,7 @@ Check: `ffmpeg -version` and `ffprobe -version`.
 ### 2. Backend
 
 ```bash
-git clone https://github.com/<you>/audiolayer-studio.git
+git clone https://github.com/zallxz/AudioLayer-Studio.git
 cd audiolayer-studio
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
