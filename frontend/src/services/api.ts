@@ -40,6 +40,11 @@ async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   } catch {
     throw new ApiError(0, "unreachable", `Cannot reach the AudioLayer backend at ${getApiBase() || location.origin}`);
   }
+  const isJson = (res.headers.get("content-type") ?? "").includes("application/json");
+  if (!isJson && (res.status === 404 || res.ok)) {
+    // Static hosting (no backend at this origin) answers with HTML or a plain 404.
+    throw new ApiError(0, "unreachable", `No AudioLayer backend at ${getApiBase() || location.origin}`);
+  }
   if (!res.ok) {
     let body: any = null;
     try { body = await res.json(); } catch { /* not JSON */ }
