@@ -93,6 +93,6 @@ input[type=number] { width: 80px; }
 
 @media (max-width: 1100px) { .workspace { grid-template-columns: 240px 1fr 260px; } }
 
-.connect { max-width: 640px; margin: 48px auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 10px; }
+.connect { align-self: start; max-width: 640px; margin: 48px auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 10px; }
 .connect code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
 .connect a { color: var(--primary); }
