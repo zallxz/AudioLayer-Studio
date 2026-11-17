@@ -1,0 +1,32 @@
+{
+ "panns_cnn14_sed.onnx": {
+  "sha256": "fa14ee879a128a80faa38bc10c5f0f3ef0fe025599cdfc642cbc3443f8ce34ec",
+  "parts": 4,
+  "size": 163680788
+ },
+ "htdemucs_core.onnx": {
+  "sha256": "65020db53f86ba8a453074ce800f856b3fbaccf056c717a7d9e73b327ed3ad11",
+  "parts": 2,
+  "size": 90561694
+ },
+ "whisper-base/model.bin": {
+  "sha256": "d01c3014881c9c6f3133c182f3d2887eb6ca1c789a7538c5c007196857a0a6a9",
+  "parts": 4,
+  "size": 145217532
+ },
+ "whisper-base/config.json": {
+  "sha256": "56a6d8110d311f19c8f0471e562832c7527f146b567275bfca59fcf7c184da9a",
+  "parts": 1,
+  "size": 2309
+ },
+ "whisper-base/tokenizer.json": {
+  "sha256": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab",
+  "parts": 1,
+  "size": 2203239
+ },
+ "whisper-base/vocabulary.txt": {
+  "sha256": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913",
+  "parts": 1,
+  "size": 459861
+ }
+}
