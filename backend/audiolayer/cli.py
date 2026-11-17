@@ -246,7 +246,19 @@ def cmd_clean(a: argparse.Namespace) -> int:
     bad = [c for c in remove if c not in CATS]
     if bad:
         raise SystemExit(f"Unknown categories {bad}; choose from {', '.join(CATS)}")
-    svc, pr = _analyze(a)
+    if a.project:
+        from .core.service import AudioLayerService
+
+        svc = AudioLayerService(get_settings())
+        pr = svc.get(a.project, "local")  # reuse the analysis from `audiolayer analyze` (no re-processing)
+        if pr.status != "analyzed":
+            svc.jobs.shutdown()
+            raise SystemExit(f"Project {a.project} is not analyzed (status: {pr.status})")
+        pr = svc.apply_preset(pr.id, "clear", "local")  # start from a clean selection
+    elif not a.input:
+        raise SystemExit("Give an input file or --project <project_id>")
+    else:
+        svc, pr = _analyze(a)
     try:
         if a.mute_gibberish:
             pr = svc.apply_preset(pr.id, "remove_gibberish", "local")
@@ -264,8 +276,13 @@ def cmd_clean(a: argparse.Namespace) -> int:
         job = _wait(svc, svc.export(pr.id, opts, "local").id, "Exporting", a.json)
         if job.status != "succeeded":
             raise SystemExit(f"Export {job.status}: {job.error}")
-        src = Path(a.input).expanduser().resolve()
-        out = Path(a.out).expanduser().resolve() if a.out else src.parent / f"{src.stem}_audiolayer"
+        if a.out:
+            out = Path(a.out).expanduser().resolve()
+        elif a.input:
+            src = Path(a.input).expanduser().resolve()
+            out = src.parent / f"{src.stem}_audiolayer"
+        else:
+            out = Path.cwd() / f"{pr.name}_audiolayer"
         out.mkdir(parents=True, exist_ok=True)
         exp_dir = svc.store.path(pr.id, job.result["dir"])
         files = []
@@ -396,8 +413,8 @@ def build_parser() -> argparse.ArgumentParser:
     w.add_argument("--no-browser", action="store_true")
     w.set_defaults(fn=cmd_web)
 
-    def common(sp: argparse.ArgumentParser) -> None:
-        sp.add_argument("input", help="video or audio file")
+    def common(sp: argparse.ArgumentParser, optional_input: bool = False) -> None:
+        sp.add_argument("input", nargs="?" if optional_input else None, help="video or audio file")
         sp.add_argument("--no-separate", action="store_true", help="detection only (faster)")
         sp.add_argument("--no-transcribe", action="store_true", help="skip speech recognition")
         sp.add_argument("--language", help="speech language hint, e.g. en, id")
@@ -408,7 +425,8 @@ def build_parser() -> argparse.ArgumentParser:
     an.set_defaults(fn=cmd_analyze)
 
     cl = sub.add_parser("clean", help="analyze, remove categories and export in one go")
-    common(cl)
+    common(cl, optional_input=True)
+    cl.add_argument("--project", help="reuse a project_id printed by `audiolayer analyze` (skips re-analysis)")
     cl.add_argument("--remove", help=f"comma list of categories to remove: {', '.join(CATS)}")
     cl.add_argument("--preset", help=f"cleanup preset: {PRESET_HELP}")
     cl.add_argument("--mute-gibberish", action="store_true", help="mute dialogue flagged as unintelligible")

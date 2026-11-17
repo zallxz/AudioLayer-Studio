@@ -7,7 +7,22 @@ your own computer **and** through Claude.
 
 ---
 
-## ⚡ Fastest way (3 steps)
+## Zero-install: use it inside Claude
+
+1. In the Claude app (web, desktop or mobile) go to **Settings → Capabilities** and turn on
+   **Code execution** (network access must allow at least *package managers*).
+2. Add the skill: **Settings → Capabilities → Skills → Upload skill** and choose a ZIP of the
+   [`skills/audiolayer`](../skills/audiolayer) folder (or save it from the skill card Claude offers).
+3. Start a chat, **upload your clip** and write e.g. *"clean up the audio of this video"*.
+
+Claude installs AudioLayer's torch-free engine in its own sandbox (takes 1–2 minutes the first time),
+tells you what it found (music, dialogue, effects, noise, gibberish…), **asks what to remove**, then
+gives you the cleaned video/audio files to download. Nothing is installed on your computer.
+Best for short clips (the app's upload limit applies).
+
+---
+
+## ⚡ Fastest way on your own computer (3 steps)
 
 1. **Install the basics**: Python 3.11+, Git and FFmpeg ([step 2](#2-install-the-basics)).
    The installer below can install Python/FFmpeg for you via Homebrew (Mac), apt (Ubuntu) or winget (Windows).
@@ -44,7 +59,7 @@ The steps below are the manual, detailed version of the same process.
 5. [Use the web app](#5-use-the-web-app)
 6. [Use with Claude Desktop](#6-use-with-claude-desktop)
 7. [Use with Claude Code](#7-use-with-claude-code-terminal)
-8. [Does it work on claude.ai (web)?](#8-does-it-work-on-claudeai-web)
+8. [Does it work on claude.ai (web)?](#8-does-it-work-on-claudeai-web) — yes, see Zero-install
 9. [Quick recipes for common AI-video problems](#9-quick-recipes)
    · [`audiolayer` commands (CLI)](#audiolayer-commands-cli) · [Claude skill](#claude-skill)
 10. [Troubleshooting](#10-troubleshooting)
@@ -374,8 +389,9 @@ Claude Code can also call the CLI directly (`audiolayer clean …`).
 
 ## 8. Does it work on claude.ai (web)?
 
-**Not directly.** Claude on the web runs on the internet and cannot reach a program running on your
-laptop (`localhost`). Options:
+**Yes — with the skill (cloud mode).** Upload the clip in the chat and Claude processes it in its own
+sandbox (see [Zero-install](#zero-install-use-it-inside-claude) at the top). What claude.ai cannot do
+is reach a program running on your laptop (`localhost`), so for files on your computer:
 
 - **Easiest:** use **Claude Desktop** (step 6) — free download from <https://claude.ai/download>.
 - **Advanced:** run AudioLayer on your own server with a public HTTPS address and add it as a
@@ -448,6 +464,7 @@ Without either, it guides the user through installing first.
 | Model download fails | Check your internet and run `audiolayer models download` again |
 | Blank web page / 404 | Run `audiolayer doctor`; if the *web UI* line fails, reinstall (`pip install -e ".[ml]"`) |
 | No sound in the browser | Click ▶ once (browsers block audio until you click); make sure the status is *analyzed* |
+| Claude can't install AudioLayer in its sandbox | Turn on *Code execution* and allow package managers (PyPI + GitHub) in *Settings → Capabilities* |
 | Slow / hot laptop | Normal on CPU. Turn off *Transcribe dialogue*, or set `AUDIOLAYER_WHISPER_MODEL=tiny` |
 | Out of memory on long videos | Set `AUDIOLAYER_CHUNK_SECONDS=15` |
 

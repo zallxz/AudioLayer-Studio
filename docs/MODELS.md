@@ -47,3 +47,22 @@ always "original minus what you removed", never a filtered approximation.
 What this means in practice: removing **music under dialogue** and **separating voice** works; removing
 **effects that overlap music** is an estimate. These numbers come from one synthetic scene; real
 generator output varies, so use the A/B toggle and your ears.
+
+## Torch-free "cloud" engine (ONNX Runtime)
+
+`scripts/export_onnx.py` exports PANNs (whole model, waveform in → probabilities out) and the htdemucs
+*network* (the complex STFT/iSTFT are re-implemented in numpy in `separation/demucs_onnx.py`, since ONNX
+cannot express them). Weights are stored as float16 and cast to float32 in the graph. Checks run while
+building it:
+
+| Check | Result |
+|---|---|
+| PANNs ONNX (fp32) vs PyTorch, framewise probabilities | max abs diff 3e-7 |
+| PANNs ONNX fp16-stored weights vs fp32 | max abs diff 7e-4 (int8 quantisation was tried and rejected: it broke the model) |
+| htdemucs ONNX + numpy spectrograms vs PyTorch forward, one 7.8 s segment | 80 dB (vocals), 75–82 dB (drums/other), 50 dB (bass) agreement |
+| Full pipeline on the demo scene, dialogue SI-SDR improvement | **+7.6 dB** (PyTorch path +6.6 dB) |
+| Same scene, BGM / noise improvement | +4.7 dB / +8.4 dB |
+| Simulated sandbox: no PyTorch, no system FFmpeg/ffprobe, Hugging Face blocked | full analyze → clean → video export works; 20 s clip ≈ 35 s |
+
+Weights mirror: branch `model-weights` (PANNs 164 MB, htdemucs 91 MB, Whisper base 145 MB; split into
+≤45 MB parts). Licenses: all MIT (see that branch's README).

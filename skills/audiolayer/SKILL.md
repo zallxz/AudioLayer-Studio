@@ -5,8 +5,10 @@ description: Clean up the audio of AI-generated videos (Veo, Sora, Kling, Wan, R
 
 # AudioLayer — AI-video audio cleanup
 
-AudioLayer Studio (https://github.com/zallxz/AudioLayer-Studio) runs locally: FFmpeg + Demucs
-(separation) + PANNs (sound-event detection) + Whisper (speech). It never modifies the original file.
+AudioLayer Studio (https://github.com/zallxz/AudioLayer-Studio): FFmpeg + Demucs (separation) + PANNs
+(sound-event detection) + Whisper (speech). It never modifies the original file. It runs either on the
+user's computer (MCP / CLI) or **directly in Claude's own code sandbox with nothing installed by the
+user** (torch-free "cloud" engine, section 5).
 Categories: `dialogue`, `bgm` (music under the scene), `sfx` (effects + intentional ambience),
 `music` (foreground song/performance), `noise` (hiss, hum, rumble — never ambience).
 
@@ -14,9 +16,13 @@ Categories: `dialogue`, `bgm` (music under the scene), `sfx` (effects + intentio
 
 1. **MCP tools available** (`analyze_media`, `get_processing_status`, … from the `audiolayer` server)
    → use them (section 4).
-2. **A shell is available** (Claude Code, or a sandbox with the user's uploaded file) → use the CLI
-   (section 5). Check first: `audiolayer --version`.
-3. **Neither** → tell the user how to set it up (section 7) and stop; don't pretend to process audio.
+2. **The user attached/uploaded a media file and you can run code** (Claude app/web with code
+   execution, a cloud sandbox) → **cloud mode** (section 5): install AudioLayer into the sandbox
+   yourself, process the uploaded file there, hand back the outputs. The user installs nothing.
+3. **A shell on the user's own machine** (Claude Code) → use the CLI (section 6). Check first:
+   `audiolayer --version`.
+4. **None of these** (no tools, no code execution) → explain the options (section 8); don't pretend to
+   process audio.
 
 ## 2. Default flow: detect → ask → apply
 
@@ -76,10 +82,40 @@ Several wishes combine: e.g. remove music **and** mute gibberish **and** normali
    `export_audio_stems(project_id)` / `separate_audio_category(project_id, category)`.
 7. Poll the export job; give the user the file paths from `files` / `zip`.
 
-## 5. CLI workflow
+## 5. Cloud mode — run in Claude's sandbox (nothing for the user to install)
+
+Setup (once per conversation; ~1–2 min; downloads ≈300 MB of PyPI wheels and ≈400 MB of model weights
+from GitHub — no PyTorch, no Hugging Face):
+
+```bash
+audiolayer --version 2>/dev/null || pip install -q "audiolayer-studio[cloud] @ https://github.com/zallxz/AudioLayer-Studio/archive/refs/heads/main.zip"
+# if pip refuses ("externally managed"): add --break-system-packages
+audiolayer models download      # ONNX models + Whisper from the GitHub mirror, SHA-256 verified
+audiolayer doctor               # expect "AI engine: ONNX Runtime (torch-free cloud engine)"
+```
+
+Then run the normal flow (section 2) on the uploaded file — find it where the app stores uploads (e.g.
+`/mnt/user-data/uploads/`), and write results where the user can download them (e.g. `--out
+/mnt/user-data/outputs/<name>`), then share/present those files:
+
+```bash
+audiolayer analyze "/mnt/user-data/uploads/clip.mp4" --json     # detect → summarize → ask (note project_id)
+audiolayer clean --project <project_id> --remove bgm,music --mute-gibberish \
+  --loudness youtube --video --out /mnt/user-data/outputs/clip_clean   # apply choices, no re-analysis
+```
+
+Notes: processing is ~1.5–2× the clip length on the sandbox CPU — use generous command timeouts and
+`--no-transcribe` for long clips if speed matters. FFmpeg comes from the `imageio-ffmpeg` wheel when the
+sandbox has none. If `pip install` or the model download fails with a network error, code execution or
+its network access is turned off: tell the user to enable *Code execution* and allow at least package
+managers (PyPI + GitHub) in *Settings → Capabilities*, then retry. Uploaded files are processed only
+inside the sandbox; nothing is sent to other services.
+
+## 6. CLI workflow
 
 ```bash
 audiolayer analyze "clip.mp4"                       # what's in the audio (add --json to parse)
+audiolayer clean --project <project_id> --preset remove_music --video   # reuse that analysis
 audiolayer clean "clip.mp4" --preset remove_music --mute-gibberish --loudness youtube --video
 audiolayer clean "clip.mp4" --remove sfx,noise --stems --zip --out ./cleaned
 audiolayer doctor                                   # diagnose installation problems
@@ -87,7 +123,8 @@ audiolayer doctor                                   # diagnose installation prob
 
 Options: `--remove` (comma list of categories), `--preset`, `--mute-gibberish`,
 `--loudness none|youtube|tiktok|podcast|broadcast`, `--format wav|flac|mp3`, `--video`, `--stems`,
-`--zip`, `--out DIR`, `--no-transcribe` (faster), `--language id|en|…`, `--json`.
+`--zip`, `--out DIR`, `--project ID` (reuse an analysis), `--no-transcribe` (faster), `--language id|en|…`,
+`--json`.
 Output goes to `<input>_audiolayer/` next to the input by default. Use `--json` when you need to read
 results programmatically; run long jobs with a generous timeout (minutes for long clips).
 
@@ -105,7 +142,7 @@ FFmpeg must be on PATH. Model weights download on first use from zenodo.org, hug
 dl.fbaipublicfiles.com — if the network blocks them, AudioLayer falls back to detection-only with a
 low-accuracy heuristic classifier; say so plainly instead of presenting those results as reliable.
 
-## 6. Report honestly
+## 7. Report honestly
 
 - Lead with what was found (categories + time ranges, transcript snippets, problems) and what was removed.
 - Always pass on the `limitations` list. Known weak spots: music and SFX that sound **at the same time**
@@ -115,12 +152,12 @@ low-accuracy heuristic classifier; say so plainly instead of presenting those re
 - Suggest the user listens (web app A/B toggle: `audiolayer web`) before publishing.
 - Never say the separation is perfect or lossless; never invent outputs or timings.
 
-## 7. Setup help (when nothing is installed)
+## 8. Setup help (when nothing is installed)
 
 1. Install: clone the repo and run `./install.sh` (macOS/Linux) or `install.ps1` (Windows). It installs
    everything, downloads models, creates a launcher and connects Claude Desktop (and Claude Code if present).
 2. Put clips in `~/AudioLayer/inputs` (the folder Claude may read), restart Claude Desktop.
 3. Web app: `audiolayer web` or double-click `AudioLayer.command` / `AudioLayer.bat`.
-4. Claude on the web (claude.ai) cannot reach a program on the user's laptop; use Claude Desktop or
-   deploy the server remotely (docs/MCP.md).
+4. In the Claude app/web, the easiest path is cloud mode (section 5): just upload the clip — no install.
+   (Claude on the web cannot reach a program on the user's laptop; for local files use Claude Desktop.)
 Full tutorial in the repo: docs/TUTORIAL.en.md (English) and docs/TUTORIAL.md (Bahasa Indonesia).

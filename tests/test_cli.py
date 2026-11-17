@@ -43,5 +43,6 @@ def test_clean_rejects_unknown_category(tmp_path: Path):
 def test_parser_has_all_commands():
     p = cli.build_parser()
     for cmd in (["doctor"], ["web", "--no-browser"], ["models", "list"], ["mcp"], ["analyze", "a.mp4"],
-                ["clean", "a.mp4", "--preset", "remove_music", "--loudness", "youtube", "--video"]):
+                ["clean", "a.mp4", "--preset", "remove_music", "--loudness", "youtube", "--video"],
+                ["clean", "--project", "prj_abc", "--remove", "bgm,music"]):
         assert p.parse_args(cmd).fn

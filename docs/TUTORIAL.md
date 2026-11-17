@@ -7,7 +7,22 @@ di komputer sendiri **dan** lewat Claude.
 
 ---
 
-## ⚡ Cara tercepat (3 langkah)
+## Tanpa install: pakai langsung di Claude
+
+1. Di aplikasi Claude (web, desktop, atau HP) buka **Settings → Capabilities**, lalu nyalakan
+   **Code execution** (akses jaringan minimal mengizinkan *package managers*).
+2. Tambahkan skill: **Settings → Capabilities → Skills → Upload skill**, pilih ZIP dari folder
+   [`skills/audiolayer`](../skills/audiolayer) (atau simpan dari kartu skill yang ditawarkan Claude).
+3. Buka chat, **upload klip-mu**, lalu tulis misalnya *"bersihkan audio video ini"*.
+
+Claude akan memasang mesin AudioLayer versi ringan (tanpa PyTorch) di sandbox miliknya sendiri
+(pertama kali 1–2 menit), memberi tahu isi audionya (musik, dialog, efek, noise, suara ngoceh…),
+**menanyakan mana yang mau dihapus**, lalu memberikan file video/audio bersih untuk diunduh.
+Tidak ada yang perlu di-install di komputermu. Paling cocok untuk klip pendek (batas upload aplikasi berlaku).
+
+---
+
+## ⚡ Cara tercepat di komputer sendiri (3 langkah)
 
 1. **Install bahan dasar**: Python 3.11+, Git dan FFmpeg ([langkah 2](#2-install-bahan-dasar)).
    Installer di bawah bisa memasang Python/FFmpeg otomatis lewat Homebrew (Mac), apt (Ubuntu) atau winget (Windows).
@@ -44,7 +59,7 @@ Langkah-langkah di bawah adalah versi manual/detail dari proses yang sama.
 5. [Pakai lewat aplikasi web](#5-pakai-lewat-aplikasi-web)
 6. [Pakai lewat Claude Desktop](#6-pakai-lewat-claude-desktop)
 7. [Pakai lewat Claude Code](#7-pakai-lewat-claude-code-terminal)
-8. [Bisa dipakai di Claude versi web (claude.ai)?](#8-bisa-dipakai-di-claudeai-versi-web)
+8. [Bisa dipakai di Claude versi web (claude.ai)?](#8-bisa-dipakai-di-claudeai-versi-web) — bisa, lihat Tanpa install
 9. [Resep cepat untuk masalah umum video AI](#9-resep-cepat)
    · [Perintah `audiolayer` (CLI)](#perintah-audiolayer-cli) · [Skill Claude](#skill-claude)
 10. [Kalau ada masalah](#10-kalau-ada-masalah)
@@ -375,8 +390,9 @@ Lalu di Claude Code: *"pakai audiolayer untuk menghapus musik dari ~/Documents/V
 
 ## 8. Bisa dipakai di claude.ai (versi web)?
 
-**Tidak langsung.** Claude versi web berjalan di internet dan tidak bisa menjangkau program yang
-berjalan di laptopmu (`localhost`). Pilihannya:
+**Bisa — lewat skill (mode cloud).** Upload klip di chat, Claude memprosesnya di sandbox miliknya
+sendiri (lihat [Tanpa install](#tanpa-install-pakai-langsung-di-claude) di bagian atas). Yang tidak
+bisa: claude.ai menjangkau program yang berjalan di laptopmu (`localhost`). Untuk file di komputermu:
 
 - **Paling mudah:** pakai **Claude Desktop** (langkah 6) — gratis diunduh dari <https://claude.ai/download>.
 - **Lanjutan:** jalankan AudioLayer di server sendiri dengan alamat HTTPS publik, lalu tambahkan
@@ -449,6 +465,7 @@ skill akan memandu cara install-nya dulu.
 | Download model gagal | Cek internet, jalankan `python scripts/download_models.py` lagi |
 | Halaman web kosong / 404 | Jalankan `audiolayer doctor`; kalau baris *web UI* gagal, install ulang (`pip install -e ".[ml]"`) |
 | Tidak ada suara di browser | Klik ▶ sekali (browser memblokir audio sebelum ada klik); pastikan status *analyzed* |
+| Claude gagal memasang AudioLayer di sandbox-nya | Nyalakan *Code execution* dan izinkan package managers (PyPI + GitHub) di *Settings → Capabilities* |
 | Proses lama / laptop panas | Normal di CPU. Matikan *Transcribe dialogue*, atau set `AUDIOLAYER_WHISPER_MODEL=tiny` |
 | Kehabisan memori untuk video panjang | Set `AUDIOLAYER_CHUNK_SECONDS=15` |
 

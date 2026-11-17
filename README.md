@@ -12,8 +12,10 @@ a cleaned mix, the video with replaced audio, and metadata for your editor.
 > 📘 **Step-by-step tutorial (install, web app, Claude Desktop, Claude Code):**
 > [🇬🇧 English](docs/TUTORIAL.en.md) · [🇮🇩 Bahasa Indonesia](docs/TUTORIAL.md)
 >
-> **Works with Claude:** add `audiolayer-mcp` to Claude Desktop or Claude Code and ask Claude in plain
-> language to analyze, clean and export your clips — see [Using it from Claude](#using-it-from-claude-mcp).
+> **Works with Claude, even with nothing installed:** with the [AudioLayer skill](skills/audiolayer/SKILL.md)
+> in the Claude app, just upload a clip — Claude installs the torch-free engine in its own sandbox, detects
+> what's in the audio, asks what to remove and gives you the cleaned files ([cloud mode](#cloud-mode-no-install-in-claude)).
+> Or connect `audiolayer-mcp` to Claude Desktop / Claude Code for local files ([Using it from Claude](#using-it-from-claude-mcp)).
 
 > Status: working end-to-end MVP (v0.1). What works, what needs model downloads and what is still
 > limited is listed explicitly in [Limitations](#limitations) and [docs/MODELS.md](docs/MODELS.md).
@@ -240,6 +242,29 @@ Full guide, tool reference and example calls: [docs/MCP.md](docs/MCP.md).
 {"tool": "export_audio_stems",     "arguments": {"project_id": "prj_3f…", "format": "wav"}}
 ```
 
+### Cloud mode (no install, in Claude)
+
+AudioLayer has two engines:
+
+| Engine | Install | Used for |
+|---|---|---|
+| `torch` | `pip install -e ".[ml]"` (PyTorch, ≈2.5 GB) | your own computer / server, GPU acceleration |
+| `onnx` ("cloud") | `pip install "audiolayer-studio[cloud] @ https://github.com/zallxz/AudioLayer-Studio/archive/refs/heads/main.zip"` (≈300 MB, PyPI only) | Claude's code-execution sandbox, small machines, CPU-only servers |
+
+The cloud engine runs the same models (PANNs, Demucs htdemucs, Whisper) through ONNX Runtime and
+CTranslate2; model weights (≈400 MB) download from this repository's
+[`model-weights`](https://github.com/zallxz/AudioLayer-Studio/tree/model-weights) branch with SHA-256
+checks, and FFmpeg comes from the `imageio-ffmpeg` wheel if the machine has none — so it needs only
+PyPI + GitHub access. `AUDIOLAYER_ENGINE=auto` (default) picks `torch` when PyTorch is installed,
+otherwise `onnx`. On the demo scene the ONNX engine measured +7.6 dB dialogue SI-SDR improvement
+(PyTorch path: +6.6 dB; the difference comes from segment overlap handling, not the network).
+
+With the [skill](skills/audiolayer/SKILL.md) installed in the Claude app (and *Code execution* enabled
+with network access to package managers), the user just uploads a clip: Claude installs the cloud
+engine in its sandbox, runs `audiolayer analyze`, shows what it found, asks which layers to remove,
+runs `audiolayer clean --project …` and returns the files. Processing takes ≈1.5–2× the clip length;
+upload limits of the app apply, so it suits short generated clips best.
+
 ### Claude skill
 
 [`skills/audiolayer/SKILL.md`](skills/audiolayer/SKILL.md) teaches Claude when and how to use AudioLayer —
@@ -293,6 +318,7 @@ Stated plainly, because over-promising separation helps nobody:
 | Claude Desktop doesn't list the tools | Use the absolute path to `audiolayer-mcp`; check Claude's MCP logs (`~/Library/Logs/Claude/mcp*.log` / `%APPDATA%\Claude\logs`). |
 | `[forbidden] Path is outside the allowed input folders` | Add the folder to `AUDIOLAYER_INPUT_DIRS` (separate several with `:` on macOS/Linux, `;` on Windows). |
 | Analysis is slow | Expected on CPU (~1.3–1.6× real time). Use a GPU, `AUDIOLAYER_WHISPER_MODEL=tiny`, or untick transcription. |
+| Claude (cloud mode) can't install / download models | Enable *Code execution* in Claude's *Settings → Capabilities* and allow at least package managers (PyPI + GitHub). |
 | Out of memory on long files | Lower `AUDIOLAYER_CHUNK_SECONDS` (e.g. 15). |
 | Browser plays nothing | Click Play once (browsers block audio until a user gesture); check that the project status is `analyzed`. |
 | 401 in the UI | The server has `AUDIOLAYER_AUTH_TOKENS` set — paste your token when prompted. |
