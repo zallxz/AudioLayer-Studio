@@ -1,6 +1,21 @@
 import type { Category, Job, Peaks, Project, ProjectSummary, Segment, SystemInfo } from "./types";
 
 const TOKEN_KEY = "audiolayer.token";
+const BASE_KEY = "audiolayer.apiBase";
+
+/**
+ * Backend base URL. Empty = same origin (UI served by the backend, or the Vite dev proxy).
+ * A hosted UI (e.g. on Vercel) points at a backend via VITE_API_BASE at build time or the
+ * "Backend" field in the UI (stored per browser).
+ */
+export const getApiBase = (): string => {
+  let v = "";
+  try { v = localStorage.getItem(BASE_KEY) ?? ""; } catch { /* storage unavailable */ }
+  return (v || (import.meta.env.VITE_API_BASE as string | undefined) || "").replace(/\/+$/, "");
+};
+export const setApiBase = (u: string) => {
+  try { if (u.trim()) localStorage.setItem(BASE_KEY, u.trim()); else localStorage.removeItem(BASE_KEY); } catch { /* ignore */ }
+};
 export const getToken = (): string => {
   try { return localStorage.getItem(TOKEN_KEY) ?? ""; } catch { return ""; }
 };
@@ -19,7 +34,12 @@ async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   const tok = getToken();
   if (tok) headers.set("Authorization", `Bearer ${tok}`);
   if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
-  const res = await fetch(path, { ...init, headers });
+  let res: Response;
+  try {
+    res = await fetch(getApiBase() + path, { ...init, headers });
+  } catch {
+    throw new ApiError(0, "unreachable", `Cannot reach the AudioLayer backend at ${getApiBase() || location.origin}`);
+  }
   if (!res.ok) {
     let body: any = null;
     try { body = await res.json(); } catch { /* not JSON */ }
@@ -35,11 +55,11 @@ export const fileUrl = (projectId: string, rel: string, download = false) => {
   const tok = getToken();
   if (tok) q.set("token", tok);
   const qs = q.toString();
-  return `/api/projects/${projectId}/files/${rel}${qs ? `?${qs}` : ""}`;
+  return `${getApiBase()}/api/projects/${projectId}/files/${rel}${qs ? `?${qs}` : ""}`;
 };
 export const mediaUrl = (projectId: string) => {
   const tok = getToken();
-  return `/api/projects/${projectId}/media${tok ? `?token=${encodeURIComponent(tok)}` : ""}`;
+  return `${getApiBase()}/api/projects/${projectId}/media${tok ? `?token=${encodeURIComponent(tok)}` : ""}`;
 };
 
 export const api = {
@@ -53,7 +73,7 @@ export const api = {
       fd.append("file", file);
       fd.append("analyze", String(analyze));
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/projects");
+      xhr.open("POST", `${getApiBase()}/api/projects`);
       const tok = getToken();
       if (tok) xhr.setRequestHeader("Authorization", `Bearer ${tok}`);
       xhr.upload.onprogress = (e) => e.lengthComputable && onProgress?.(e.loaded / e.total);
