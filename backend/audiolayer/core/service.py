@@ -49,6 +49,15 @@ PRESETS: dict[str, dict[str, Any]] = {
 HISTORY_LIMIT = 50
 
 
+def _retitle(seg: Segment, category: str) -> None:
+    """Keep a music segment's description in step with its BGM/Music role."""
+    if category not in ("bgm", "music"):
+        return
+    old, new = ("Background music", "Foreground music") if category == "music" else ("Foreground music", "Background music")
+    if seg.description.startswith(old):
+        seg.description = new + seg.description[len(old):]
+
+
 class AudioLayerService:
     def __init__(self, settings: Settings, components: Components | None = None):
         self.settings = settings
@@ -147,11 +156,7 @@ class AudioLayerService:
             if category is not None and category != seg.category:
                 if category not in CATEGORIES:
                     raise NotFound(f"Unknown category {category!r}")
-                for old, new in (("Background music", "Foreground music"), ("Foreground music", "Background music")):
-                    if category in ("bgm", "music") and seg.description.startswith(old) and \
-                            (category == "music") == (old == "Background music"):
-                        seg.description = new + seg.description[len(old):]
-                        break
+                _retitle(seg, category)
                 seg.category = category
                 seg.edited = True
                 seg.uncertain = False
@@ -233,6 +238,7 @@ class AudioLayerService:
             self._snapshot(pr)
             for s in pr.segments:
                 if s.original_category:
+                    _retitle(s, s.original_category)
                     s.category = s.original_category
                 s.muted = s.solo = s.edited = False
             pr.mix.removed = []

@@ -9,16 +9,33 @@ di komputer sendiri **dan** lewat Claude.
 
 ## Tanpa install: pakai langsung di Claude
 
+🎬 Lihat dulu videonya: [audiolayer_promo.mp4](media/audiolayer_promo.mp4) (41 detik, ada tutorial di Claude).
+
 1. Di aplikasi Claude (web, desktop, atau HP) buka **Settings → Capabilities**, lalu nyalakan
-   **Code execution** (akses jaringan minimal mengizinkan *package managers*).
-2. Tambahkan skill: **Settings → Capabilities → Skills → Upload skill**, pilih ZIP dari folder
-   [`skills/audiolayer`](../skills/audiolayer) (atau simpan dari kartu skill yang ditawarkan Claude).
-3. Buka chat, **upload klip-mu**, lalu tulis misalnya *"bersihkan audio video ini"*.
+   **Code execution**. Akses jaringannya harus mengizinkan **PyPI** (package managers) **dan GitHub**
+   (`github.com`, `raw.githubusercontent.com`) — model AI diunduh dari repo ini. Kalau pilihanmu hanya
+   *package managers* dan unduhan model gagal, tambahkan dua domain GitHub itu atau pilih *All domains*.
+2. **Unduh skill-nya: [audiolayer.zip](https://github.com/zallxz/AudioLayer-Studio/raw/main/skills/audiolayer.zip)**, lalu di **Settings → Capabilities → Skills** klik
+   **Upload skill** dan pilih file itu.
+3. Buka chat baru, **upload klip-mu**, lalu ketik **`/audiolayer`** (atau tulis biasa, misalnya
+   *"hapus musik latar di video ini"*).
 
 Claude akan memasang mesin AudioLayer versi ringan (tanpa PyTorch) di sandbox miliknya sendiri
 (pertama kali 1–2 menit), memberi tahu isi audionya (musik, dialog, efek, noise, suara ngoceh…),
 **menanyakan mana yang mau dihapus**, lalu memberikan file video/audio bersih untuk diunduh.
 Tidak ada yang perlu di-install di komputermu. Paling cocok untuk klip pendek (batas upload aplikasi berlaku).
+
+Contoh alurnya:
+
+> **Kamu:** *(upload `klip.mp4`)* `/audiolayer`
+> **Claude:** Ini yang ada di klipmu: musik latar 0:00–0:20 · dialog 0:03–0:12 “With her white paint…” ·
+> efek suara burung 0:13–0:15 · desis 0:00–0:20. **Apa yang mau dihapus?** ☐ Musik latar ☐ Desis ☐ Efek suara ☐ Tidak ada — stem saja
+> **Kamu:** *(centang Musik latar + Desis)*
+> **Claude:** Selesai — `klip_cleaned_video.mp4`, `klip_cleaned.wav` siap diunduh.
+
+**Kalau gagal:** pesan *network error* saat `pip install` atau *download model* berarti Code execution
+mati atau akses jaringannya belum mengizinkan PyPI/GitHub (lihat langkah 1). Proses ≈1,5–2× durasi klip;
+untuk klip panjang minta Claude memakai `--no-transcribe` agar lebih cepat.
 
 ---
 

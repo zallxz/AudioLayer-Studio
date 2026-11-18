@@ -12,8 +12,10 @@ a cleaned mix, the video with replaced audio, and metadata for your editor.
 > 📘 **Step-by-step tutorial (install, web app, Claude Desktop, Claude Code):**
 > [🇬🇧 English](docs/TUTORIAL.en.md) · [🇮🇩 Bahasa Indonesia](docs/TUTORIAL.md)
 >
-> **Works with Claude, even with nothing installed:** with the [AudioLayer skill](skills/audiolayer/SKILL.md)
-> in the Claude app, just upload a clip — Claude installs the torch-free engine in its own sandbox, detects
+> 🎬 **Demo video (41 s):** [docs/media/audiolayer_promo.mp4](docs/media/audiolayer_promo.mp4)
+>
+> **Works with Claude, even with nothing installed:** add the skill ([download audiolayer.zip](https://github.com/zallxz/AudioLayer-Studio/raw/main/skills/audiolayer.zip))
+> in the Claude app, upload a clip and type `/audiolayer` — Claude installs the torch-free engine in its own sandbox, detects
 > what's in the audio, asks what to remove and gives you the cleaned files ([cloud mode](#cloud-mode-no-install-in-claude)).
 > Or connect `audiolayer-mcp` to Claude Desktop / Claude Code for local files ([Using it from Claude](#using-it-from-claude-mcp)).
 
@@ -260,7 +262,7 @@ otherwise `onnx`. On the demo scene the ONNX engine measured +7.6 dB dialogue SI
 (PyTorch path: +6.6 dB; the difference comes from segment overlap handling, not the network).
 
 With the [skill](skills/audiolayer/SKILL.md) installed in the Claude app (and *Code execution* enabled
-with network access to package managers), the user just uploads a clip: Claude installs the cloud
+with network access to PyPI and GitHub), the user just uploads a clip and types `/audiolayer`: Claude installs the cloud
 engine in its sandbox, runs `audiolayer analyze`, shows what it found, asks which layers to remove,
 runs `audiolayer clean --project …` and returns the files. Processing takes ≈1.5–2× the clip length;
 upload limits of the app apply, so it suits short generated clips best.
@@ -270,8 +272,9 @@ upload limits of the app apply, so it suits short generated clips best.
 [`skills/audiolayer/SKILL.md`](skills/audiolayer/SKILL.md) teaches Claude when and how to use AudioLayer —
 mapping requests like "remove the music", "the characters speak gibberish" or "I want to dub it" to the
 right preset, running the MCP tools or the CLI, waiting for jobs and reporting limitations honestly.
-Install it in Claude via *Settings → Capabilities → Skills* (upload a ZIP of the `audiolayer` folder), or
-copy the folder to `~/.claude/skills/` for Claude Code.
+Install it in Claude: download **[audiolayer.zip](https://github.com/zallxz/AudioLayer-Studio/raw/main/skills/audiolayer.zip)** and upload it in *Settings → Capabilities →
+Skills*, or copy the folder to `~/.claude/skills/` for Claude Code. After editing `SKILL.md`, rebuild the
+ZIP with `python scripts/build_skill_zip.py` (a test checks it is current).
 
 ## Export formats
 

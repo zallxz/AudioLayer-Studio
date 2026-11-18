@@ -9,16 +9,33 @@ your own computer **and** through Claude.
 
 ## Zero-install: use it inside Claude
 
+🎬 Watch first: [audiolayer_promo.mp4](media/audiolayer_promo.mp4) (41 s, includes the Claude walkthrough, Indonesian voice-over).
+
 1. In the Claude app (web, desktop or mobile) go to **Settings → Capabilities** and turn on
-   **Code execution** (network access must allow at least *package managers*).
-2. Add the skill: **Settings → Capabilities → Skills → Upload skill** and choose a ZIP of the
-   [`skills/audiolayer`](../skills/audiolayer) folder (or save it from the skill card Claude offers).
-3. Start a chat, **upload your clip** and write e.g. *"clean up the audio of this video"*.
+   **Code execution**. Network access must allow **PyPI** (package managers) **and GitHub**
+   (`github.com`, `raw.githubusercontent.com`) — the AI models download from this repo. If you only
+   allowed *package managers* and the model download fails, add those two GitHub domains or pick *All domains*.
+2. **Download the skill: [audiolayer.zip](https://github.com/zallxz/AudioLayer-Studio/raw/main/skills/audiolayer.zip)**, then in **Settings → Capabilities → Skills** click
+   **Upload skill** and choose that file.
+3. Start a new chat, **upload your clip** and type **`/audiolayer`** (or just ask, e.g.
+   *"remove the background music from this video"*).
 
 Claude installs AudioLayer's torch-free engine in its own sandbox (takes 1–2 minutes the first time),
 tells you what it found (music, dialogue, effects, noise, gibberish…), **asks what to remove**, then
 gives you the cleaned video/audio files to download. Nothing is installed on your computer.
 Best for short clips (the app's upload limit applies).
+
+What it looks like:
+
+> **You:** *(upload `clip.mp4`)* `/audiolayer`
+> **Claude:** Here's what's in your clip: background music 0:00–0:20 · dialogue 0:03–0:12 “With her white paint…” ·
+> bird sound effect 0:13–0:15 · hiss 0:00–0:20. **What should be removed?** ☐ Background music ☐ Hiss ☐ Sound effects ☐ Nothing — just stems
+> **You:** *(tick Background music + Hiss)*
+> **Claude:** Done — `clip_cleaned_video.mp4`, `clip_cleaned.wav` ready to download.
+
+**If it fails:** a *network error* during `pip install` or the model download means Code execution is off
+or its network access doesn't allow PyPI/GitHub yet (see step 1). Processing takes ≈1.5–2× the clip
+length; for long clips ask Claude to use `--no-transcribe` to speed it up.
 
 ---
 
